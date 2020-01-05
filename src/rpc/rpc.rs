@@ -1,6 +1,8 @@
+
+use super::error::{Error,Result};
+
 use async_std::io;
 use async_std::prelude::*;
-use crate::util::to_ioerr;
 
 use kuska_handshake::async_std::{
     BoxStreamRead,
@@ -47,9 +49,9 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn from_slice(bytes: &[u8]) -> Result<Header,io::Error> {
+    pub fn from_slice(bytes: &[u8]) -> Result<Header> {
         if bytes.len() < HEADER_SIZE {
-            return Err(to_ioerr("header size too small"));
+            return Err(Error::HeaderSizeTooSmall);
         }
 
         let is_stream = (bytes[0] & RPC_HEADER_STREAM_FLAG) == RPC_HEADER_STREAM_FLAG;
@@ -58,7 +60,7 @@ impl Header {
             0 => BodyType::Binary,
             1 => BodyType::UTF8,
             2 => BodyType::JSON,
-            _ => return Err(to_ioerr("bad body type")),
+            _ => return Err(Error::InvalidBodyType),
         };
 
         let mut body_len_buff = [0u8;4];
@@ -111,7 +113,7 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         RpcClient { box_reader, box_writer, req_no : 0 }
     }
 
-    pub async fn recv(&mut self) -> Result<(Header,Vec<u8>),io::Error> {
+    pub async fn recv(&mut self) -> Result<(Header,Vec<u8>)> {
         let mut rpc_header_raw = [0u8;9];
         self.box_reader.read_exact(&mut rpc_header_raw[..]).await?;
         let rpc_header = Header::from_slice(&rpc_header_raw[..])?;
@@ -122,16 +124,16 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         Ok((rpc_header,rpc_body))
     }
 
-    pub async fn send<T:serde::Serialize>(&mut self, name : &[&str], rpc_type: RpcType, args :&T) -> Result<RequestNo,io::Error>{
+    pub async fn send<T:serde::Serialize>(&mut self, name : &[&str], rpc_type: RpcType, args :&T) -> Result<RequestNo>{
 
         self.req_no+=1;
 
         let mut body = String::from("{\"name\":");
-        body.push_str(&serde_json::to_string(&name).map_err(to_ioerr)?);
+        body.push_str(&serde_json::to_string(&name)?);
         body.push_str(",\"type\":\"");
         body.push_str(rpc_type.rpc_id());
         body.push_str("\",\"args\":[");
-        body.push_str(&serde_json::to_string(&args).map_err(to_ioerr)?);
+        body.push_str(&serde_json::to_string(&args)?);
         body.push_str("]}");
 
         let rpc_header = Header {
@@ -149,7 +151,7 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         Ok(self.req_no)
     }
 
-    pub async fn send_cancel_stream(&mut self, req_no: RequestNo) -> Result<(),io::Error> {
+    pub async fn send_cancel_stream(&mut self, req_no: RequestNo) -> Result<()> {
         let body_bytes = b"true";
         
         let rpc_header = Header {
@@ -161,11 +163,13 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         }.to_array();
 
         self.box_writer.write_all(&rpc_header[..]).await?;
-        self.box_writer.write_all(&body_bytes[..]).await
+        self.box_writer.write_all(&body_bytes[..]).await?;
+        Ok(())
     }
 
-    pub async fn close(&mut self) -> Result<(),io::Error> {
-        self.box_writer.goodbye().await
+    pub async fn close(&mut self) -> Result<()> {
+        self.box_writer.goodbye().await?;
+        Ok(())
     }
 
 }

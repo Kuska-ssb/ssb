@@ -1,13 +1,12 @@
 use std::time::SystemTime;
 
 use sodiumoxide::crypto::{sign::ed25519};
-use async_std::io;
 use serde_json::Value;
 
-use crate::util::to_ioerr;
 use crate::crypto::ToSodiumObject;
 use crate::patchwork::IdentitySecret;
 use super::{stringify_json,ssb_sha256};
+use super::error::{Error,Result};
 
 const MSG_PREVIOUS : &str = "previous";
 const MSG_AUTHOR : &str = "author";
@@ -21,7 +20,7 @@ macro_rules! cast {
     ($input:expr,$pth:path) => {
         match $input {
             Some($pth(x)) => Ok(x),
-            _ => Err(to_ioerr(format!("cannot cast {} to {}",stringify!($input),stringify!($pth))))       
+            _ => Err(Error::InvalidJson),       
         };
     }
 }
@@ -32,7 +31,7 @@ macro_rules! cast_opt {
             None => Ok(None),
             Some(Value::Null) => Ok(None),
             Some($pth(x)) => Ok(Some(x)),
-            _ => Err(to_ioerr(format!("cannot cast {} to {}",stringify!($input),stringify!($pth))))       
+            _ => Err(Error::InvalidJson)       
         };
     }
 }
@@ -45,7 +44,7 @@ pub struct Message {
 
 impl Message {
 
-    pub fn new(prev : Option<&Message>, identity: &IdentitySecret, content: Value) -> Result<Self,io::Error> {
+    pub fn new(prev : Option<&Message>, identity: &IdentitySecret, content: Value) -> Result<Self> {
         let mut value : serde_json::Map<String,Value> = serde_json::Map::new();
         if let Some(prev) = prev {
             value.insert(MSG_PREVIOUS.to_string(), Value::String(prev.id()?));
@@ -60,8 +59,8 @@ impl Message {
             );
         }
 
-        let timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
-            .map_err(to_ioerr)?.as_millis() as u64;
+        let timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?
+            .as_millis() as u64;
 
         let timestamp = Value::Number(serde_json::Number::from(timestamp));
 
@@ -95,47 +94,47 @@ impl Message {
         Ok(Message { value : Value::Object(value) })
     }
 
-    pub fn from_str(s : &str) -> Result<Self,io::Error> {
+    pub fn from_str(s : &str) -> Result<Self> {
         Self::from_value(serde_json::from_str::<Value>(&s)?)
     }
 
-    pub fn from_slice(s : &[u8]) -> Result<Self,io::Error> {
+    pub fn from_slice(s : &[u8]) -> Result<Self> {
         Self::from_value(serde_json::from_slice(&s)?)
     }
 
-    pub fn from_value(v : Value) -> Result<Self,io::Error> {
+    pub fn from_value(v : Value) -> Result<Self> {
 
-        let mut v = cast!(Some(v),Value::Object).map_err(to_ioerr)?;
+        let mut v = cast!(Some(v),Value::Object)?;
 
         // check if ok 
-        cast_opt!(v.get(MSG_PREVIOUS),Value::String).map_err(to_ioerr)?;
-        cast!(v.get(MSG_SEQUENCE),Value::Number).map_err(to_ioerr)?;
-        cast!(v.get(MSG_SEQUENCE),Value::Number).map_err(to_ioerr)?;
-        cast!(v.get(MSG_TIMESTAMP),Value::Number).map_err(to_ioerr)?;
-        cast!(v.get(MSG_HASH),Value::String).map_err(to_ioerr)?;
-        v.get(MSG_CONTENT).ok_or(to_ioerr("invalid content"))?;
+        cast_opt!(v.get(MSG_PREVIOUS),Value::String)?;
+        cast!(v.get(MSG_SEQUENCE),Value::Number)?;
+        cast!(v.get(MSG_SEQUENCE),Value::Number)?;
+        cast!(v.get(MSG_TIMESTAMP),Value::Number)?;
+        cast!(v.get(MSG_HASH),Value::String)?;
+        v.get(MSG_CONTENT).ok_or(Error::InvalidJson)?;
 
         // verify signature
-        let signature = cast!(v.remove(MSG_SIGNATURE),Value::String).map_err(to_ioerr)?;
-        let author = cast!(v.get(MSG_AUTHOR),Value::String).map_err(to_ioerr)?;
+        let signature = cast!(v.remove(MSG_SIGNATURE),Value::String)?;
+        let author = cast!(v.get(MSG_AUTHOR),Value::String)?;
         let sig = signature.to_ed25519_signature()?;
         let signer = author[1..].to_ed25519_pk()?;
 
         let value = Value::Object(v);
         let signed_text = stringify_json(&value)?;
         if !ed25519::verify_detached(&sig, &signed_text.as_ref(), &signer) {
-            return Err(to_ioerr("signature verification failed"));
+            return Err(Error::InvalidSignature);
         }
         
         // put signature back
-        let mut v = cast!(Some(value),Value::Object).map_err(to_ioerr)?;
+        let mut v = cast!(Some(value),Value::Object)?;
         v.insert(MSG_SIGNATURE.to_string(), Value::String(signature));
 
         Ok(Message { value : Value::Object(v) })
 
     }
 
-    pub fn id(&self) -> Result<String,io::Error> {
+    pub fn id(&self) -> Result<String> {
         let digest = base64::encode(&ssb_sha256(&self.value)?);
         Ok(format!("%{}.sha256",digest))
     }
@@ -186,7 +185,7 @@ mod test {
     use super::*;
     
     #[test]
-    fn test_verify_known_msg_integrity() -> Result<(),io::Error> {
+    fn test_verify_known_msg_integrity() -> Result<()> {
         let message_id ="%Cg0ZpZ8cV85G8UIIropgBOvM8+Srlv9LSGDNGnpdK44=.sha256";
         let message = r#"{"previous":"%seUEAo7PTyA7vNwnOrmGIsUFfpyRzOvzGVv1QCb/Fz8=.sha256","author":"@BIbVppzlrNiRJogxDYz3glUS7G4s4D4NiXiPEAEzxdE=.ed25519","sequence":37,"timestamp":1439392020612,"hash":"sha256","content":{"type":"post","text":"@paul real time replies didn't work.","repliesTo":"%xWKunF6nXD7XMC+D4cjwDMZWmBnmRu69w9T25iLNa1Q=.sha256","mentions":["%7UKRfZb2u8al4tYWHqM55R9xpE/KKVh9U0M6BdugGt4=.sha256"],"recps":[{"link":"@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519","name":"paul"}]},"signature":"gGxSPdBJZxp6x5f3HzQGoQSeSdh/C5AtymIn+miWa+lcC6DdqpRSgaeH9KHeLf+/CKhU6REYIpWaLr4CKDMfCg==.sig.ed25519"}"#;
         let msg = Message::from_str(&message)?;
@@ -195,7 +194,7 @@ mod test {
     }
 
     #[test]
-    fn test_sign_verify() -> Result<(),io::Error> {
+    fn test_sign_verify() -> Result<()> {
         let content = Value::String("thistest".to_string());
         let id = IdentitySecret::new();
         let msg1 = Message::new(None,&id,content.clone())?.to_string();

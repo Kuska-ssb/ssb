@@ -6,6 +6,8 @@ use sodiumoxide::crypto::auth;
 
 use crate::crypto::ToSodiumObject;
 
+use super::error::{Error,Result};
+
 const CURVE_ED25519 : &str = "ed25519";
 pub const SSB_NET_ID : &str = "d4a1cb88a66f02f8db635ce26441cc5dac1b08420ceaac230839b755845a9ffb";
 
@@ -42,19 +44,14 @@ impl IdentitySecret {
         }
     }
 
-    pub fn from_local_config() -> io::Result<IdentitySecret> {
-        if let Some(home_dir) = dirs::home_dir() {
-            let local_key_file = format!("{}/.ssb/secret",home_dir.to_string_lossy());
-
-            std::fs::read_to_string(local_key_file)
-                .and_then(IdentitySecret::from_config)
-
-        } else {
-            Err(to_ioerr("cannot retrieve home folder"))
-        }
+    pub fn from_local_config() -> Result<IdentitySecret> {
+        let home_dir = dirs::home_dir().ok_or(Error::HomeNotFound)?;
+        let local_key_file = format!("{}/.ssb/secret",home_dir.to_string_lossy());
+        let content = std::fs::read_to_string(local_key_file)?;
+        Ok(IdentitySecret::from_config(content)?)
     }
 
-    pub fn from_config<T : AsRef<str>>(config: T) -> io::Result<IdentitySecret> {
+    pub fn from_config<T : AsRef<str>>(config: T) -> Result<IdentitySecret> {
 
         // strip all comments
         let json = config.as_ref()
@@ -68,7 +65,7 @@ impl IdentitySecret {
             .map_err(to_ioerr)?;
 
         if secret.curve != CURVE_ED25519 {
-            return Err(to_ioerr("invalid curve"));
+            return Err(Error::InvalidConfig);
         }
         
         Ok(IdentitySecret {

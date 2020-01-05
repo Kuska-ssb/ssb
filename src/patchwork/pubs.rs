@@ -1,7 +1,7 @@
 use sodiumoxide::crypto::sign::ed25519;
-use async_std::io;
-use crate::util::to_ioerr;
 use crate::crypto::ToSodiumObject;
+
+use super::error::{Error,Result};
 
 pub struct Invite {
     pub domain : String,
@@ -11,18 +11,18 @@ pub struct Invite {
 }
 
 impl Invite {
-    pub fn from_code(code : &str) -> Result<Self,io::Error> {
+    pub fn from_code(code : &str) -> Result<Self> {
         let domain_port_keys : Vec<_> = code.split(":").collect();
         if domain_port_keys.len() != 3 {
-            return Err(to_ioerr("invalid code"));
+            return Err(Error::InvalidInviteCode);
         }
 
         let domain = domain_port_keys[0].to_string();
-        let port = domain_port_keys[1].parse::<u16>().map_err(to_ioerr)?;
+        let port = domain_port_keys[1].parse::<u16>()?;
         let pk_sk :Vec<_> = domain_port_keys[2].split("~").collect();
 
         if pk_sk.len() != 2 {
-            return Err(to_ioerr("invalid code keys"));
+            return Err(Error::InvalidInviteCode);
         }
         let pub_pk = pk_sk[0][1..].to_ed25519_pk()?;
         let invite_sk = pk_sk[1][..].to_ed25519_sk_no_suffix()?;

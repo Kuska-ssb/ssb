@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::fs::{File,OpenOptions};
 use std::io::SeekFrom;
 use std::io::prelude::*;
-use crate::util::to_ioerr;
+use super::error::{Error,Result};
 
 pub struct FeedsStorage {
     path : PathBuf
@@ -47,7 +47,7 @@ impl FeedStorage {
            | message-len 32 bits be
     */
 
-    pub fn append(&self, seq_no: u32, feed: &str) -> Result<(),io::Error> {
+    pub fn append(&self, seq_no: u32, feed: &str) -> Result<()> {
         let mut file = OpenOptions::new()
             .create(true)
             .read(true)
@@ -58,12 +58,12 @@ impl FeedStorage {
         let created = file.seek(SeekFrom::End(0))? == 0;        
         if created {
             if seq_no != 1{
-                return Err(to_ioerr("invalid sequence (must be 1)"));
+                return Err(Error::InvalidSequenceNo);
             }
         } else {
             let file_seq_no = self.get_last_seq(&mut file)?;
             if file_seq_no + 1 != seq_no {
-                return Err(to_ioerr("invalid sequence"));
+                return Err(Error::InvalidSequenceNo);
             }
         }
         self.set_last_seq(&mut file,seq_no)?;
@@ -78,7 +78,9 @@ impl FeedStorage {
         let mut wtr = snap::Writer::new(file);
         io::copy(&mut feed.as_bytes(), &mut wtr)?;
 
-        let mut file = wtr.into_inner().map_err(to_ioerr)?;
+        let mut file = wtr.into_inner().map_err(
+            |err| Error::CompressionError(format!("{:?}",err))
+        )?;
         let len = file.seek(SeekFrom::Current(0))?- offset;
 
         // write feed size
@@ -90,7 +92,7 @@ impl FeedStorage {
         Ok(())
     }
 
-    pub fn last_seq(&self) -> Result<u32,io::Error> {
+    pub fn last_seq(&self) -> Result<u32> {
 
         if !self.path.exists() {
             return Ok(0);
@@ -102,20 +104,20 @@ impl FeedStorage {
         self.get_last_seq(&mut file)
     }
 
-    fn get_last_seq(&self, file: &mut File) -> Result<u32,io::Error> {
+    fn get_last_seq(&self, file: &mut File) -> Result<u32> {
         let mut file_seq_no = [0u8;4];
         file.seek(SeekFrom::Start(0))?;
         file.read_exact(&mut file_seq_no[..])?;
         Ok(u32::from_be_bytes(file_seq_no))
     }
 
-    fn set_last_seq(&self, file: &mut File, seq_no: u32) -> Result<(),io::Error> {
+    fn set_last_seq(&self, file: &mut File, seq_no: u32) -> Result<()> {
         file.seek(SeekFrom::Start(0))?;
         file.write_all( &seq_no.to_be_bytes()[..] )?;
         Ok(())
     }
 
-    pub fn iter(&self) -> Result<FeedStorageIterator,io::Error> {
+    pub fn iter(&self) -> Result<FeedStorageIterator> {
         let mut file = OpenOptions::new()
             .read(true)
             .open(&self.path)?;
@@ -129,7 +131,7 @@ impl FeedStorage {
         })
     }
 
-    pub fn rev_iter(&self) -> Result<FeedStorageReverseIterator,io::Error> {
+    pub fn rev_iter(&self) -> Result<FeedStorageReverseIterator> {
         let mut file = OpenOptions::new()
             .read(true)
             .open(&self.path)?;
@@ -158,7 +160,7 @@ pub struct FeedStorageIterator {
 }
 
 impl Iterator for FeedStorageIterator {
-    type Item = Result<Feed,io::Error>;
+    type Item = Result<Feed>;
 
     // next() is the only required method
     fn next(&mut self) -> Option<Self::Item> {
@@ -170,7 +172,7 @@ impl Iterator for FeedStorageIterator {
         // read compressed size
         let mut size_buf = [0u8;4];
         if let Err(err) = self.file.read_exact(&mut size_buf[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
         let size = u32::from_be_bytes(size_buf);
 
@@ -178,29 +180,29 @@ impl Iterator for FeedStorageIterator {
         let mut compressed : Vec<u8> = Vec::with_capacity(size as usize);
         compressed.resize(size as usize, 0);
         if let Err(err) = self.file.read_exact(&mut compressed[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
 
         let mut rdr = snap::Reader::new(&compressed[..]);
         let mut plaintext : Vec<u8> = Vec::new();
         
         if let Err(err) = io::copy(&mut rdr, &mut plaintext) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
 
         // read compresed size again
         if let Err(err) = self.file.read_exact(&mut size_buf[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
         if u32::from_be_bytes(size_buf) != size {
-            return Some(Err(to_ioerr("mismatch reading second size")))
+            return Some(Err(Error::MismatchReadingSecondSize));
         }
 
         self.current_seq_no += 1;
-        let ret = String::from_utf8(plaintext).and_then(|value| {
-            Ok(Feed { seq_no : self.current_seq_no, value })
-        }).map_err(to_ioerr);
-
+        let ret = match String::from_utf8(plaintext) {
+            Err(err) => Err(Error::Utf8(err)),
+            Ok(value) => Ok(Feed { seq_no : self.current_seq_no, value })        
+        };
         Some(ret)
      } 
 }
@@ -211,7 +213,7 @@ pub struct FeedStorageReverseIterator {
 }
 
 impl Iterator for FeedStorageReverseIterator {
-    type Item = Result<Feed,io::Error>;
+    type Item = Result<Feed>;
 
     // next() is the only required method
     fn next(&mut self) -> Option<Self::Item> {
@@ -223,41 +225,43 @@ impl Iterator for FeedStorageReverseIterator {
         // read compressed size
         let mut size_buf = [0u8;4];
         if let Err(err) = self.file.read_exact(&mut size_buf[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
         let size = u32::from_be_bytes(size_buf);
         if let Err(err) = self.file.seek(SeekFrom::Current(-((size+8) as i64))) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
 
         // read compresed size again
         if let Err(err) = self.file.read_exact(&mut size_buf[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
         if u32::from_be_bytes(size_buf) != size {
-            return Some(Err(to_ioerr("mismatch reading second size")))
+            return Some(Err(Error::MismatchReadingSecondSize));
         }
 
         // read compressed data
         let mut compressed : Vec<u8> = Vec::with_capacity(size as usize);
         compressed.resize(size as usize, 0);
         if let Err(err) = self.file.read_exact(&mut compressed[..]) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
 
         let mut rdr = snap::Reader::new(&compressed[..]);
         let mut plaintext : Vec<u8> = Vec::new();
         
         if let Err(err) = io::copy(&mut rdr, &mut plaintext) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
         // prepare offset for the next read
         if let Err(err) = self.file.seek(SeekFrom::Current(-((size+8) as i64))) {
-            return Some(Err(err));
+            return Some(Err(Error::Io(err)));
         }
-        let ret = String::from_utf8(plaintext).and_then(|value| {
-            Ok(Feed { seq_no : self.current_seq_no, value })
-        }).map_err(to_ioerr);
+
+        let ret = match String::from_utf8(plaintext) {
+            Err(err) => Err(Error::Utf8(err)),
+            Ok(value) => Ok(Feed { seq_no : self.current_seq_no, value })
+        };
 
         self.current_seq_no -= 1;
 
@@ -272,7 +276,7 @@ mod test {
     use rand::{thread_rng, Rng};
     use std::iter;
 
-    fn rand_folder() -> Result<PathBuf,io::Error> {
+    fn rand_folder() -> Result<PathBuf> {
         let mut rng = thread_rng();
         let name: String = iter::repeat(())
             .map(|()| rng.sample(Alphanumeric))
@@ -288,7 +292,7 @@ mod test {
     }
 
     #[test]
-    fn test_db_feeds() -> Result<(),io::Error> {
+    fn test_db_feeds() -> Result<()> {
         let user_id = "@ZFWw+UclcUgYi081/C8lhgH+KQ9s7YJRoOYGnzxW/JQ=.ed25519";
         let feeds = FeedsStorage::new(rand_folder()?);
         let feed = feeds.user(user_id.to_owned());

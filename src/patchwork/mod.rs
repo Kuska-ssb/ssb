@@ -1,6 +1,7 @@
 mod api;
 mod config;
 mod messagetypes;
+mod error;
 pub mod pubs;
 
 pub use api::{
@@ -8,3 +9,4 @@ pub use api::{
     CreateStreamArgs,
 };
 pub use config::{ssb_net_id, IdentitySecret};
+pub use error::{Error,Result};

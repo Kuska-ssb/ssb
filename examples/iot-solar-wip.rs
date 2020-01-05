@@ -12,35 +12,32 @@ use signal_hook::{iterator::Signals, SIGTERM, SIGINT, SIGHUP, SIGQUIT};
 
 use actix_web::{get, web, App, HttpServer, Responder};
 
-use async_std::io;
 use async_std::io::{Read,Write};
-use async_std::pin::Pin;
-use async_std::task::{Context, Poll};
 
 use kuska_handshake::async_std::{BoxStream,handshake_client,TokioCompatExt,TokioCompatExtRead,TokioCompatExtWrite};
 use kuska_ssb::rpc::{Header,RequestNo,RpcClient};
-use kuska_ssb::util::to_ioerr;
 use kuska_ssb::patchwork::*;
 
 use tokio::net::TcpStream;
-use tokio::net::tcp::{ReadHalf,WriteHalf};
 
-async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo, f : F) -> io::Result<T>
+type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo, f : F) -> AnyResult<T>
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&Vec<u8>)->io::Result<T>,
+    F: Fn(&Header,&Vec<u8>)->Result<T>,
     T: Debug
 {
     loop {
         let (header,body) = client.rpc().recv().await?;
         if header.req_no == req_no {
-            return f(&header,&body);
+            return f(&header,&body).map_err(|err| err.into());
         }
     }
 }
 
-async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, command: &str) -> Result<bool,io::Error> {
+async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, command: &str) -> AnyResult<bool> {
   let req_id = api.send_whoami().await?;
   let whoami = get_async(api,-req_id,parse_whoami).await?.id;
 
@@ -49,7 +46,7 @@ async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, command
   Ok(false)
 }
 
-async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<bool>) -> Result<(),io::Error>{
+async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<bool>) -> AnyResult<()>{
   
   /*
     sync loop functionality
@@ -77,10 +74,8 @@ async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<
   let tokio_socket : TcpStream = TcpStream::connect("127.0.0.1:8008").await?;
   let asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
 
-  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await
-    .map_err(to_ioerr)?;
+  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
 
-  println!("💃 handshake complete");
  
   let mut tokio_socket = asyncstd_socket.into_inner();
   let (read,write) = tokio_socket.split();
@@ -124,7 +119,7 @@ async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<
 }
 
 
-async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<bool>) -> Result<(),io::Error>{
+async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<bool>) -> AnyResult<()>{
   
   let IdentitySecret{pk,sk,..} = IdentitySecret::from_local_config()
   .expect("read local secret");
@@ -132,8 +127,7 @@ async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiv
   let tokio_socket : TcpStream = TcpStream::connect("127.0.0.1:8008").await?;
   let asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
 
-  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await
-    .map_err(to_ioerr)?;
+  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
 
   println!("💃 handshake complete");
  
