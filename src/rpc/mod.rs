@@ -1,5 +1,5 @@
-mod rpc;
+mod client;
 mod error;
 
-pub use rpc::{RpcClient,Header, RequestNo, RpcType};
+pub use client::{RpcClient,Header, RequestNo, RpcType};
 pub use error::{Error,Result};

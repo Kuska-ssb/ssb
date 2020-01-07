@@ -34,8 +34,9 @@ fn to_ioerr<T: ToString>(err: T) -> io::Error {
     io::Error::new(io::ErrorKind::Other, err.to_string())
 }
 
+#[allow(clippy::new_without_default)]
 impl IdentitySecret {
-
+    
     pub fn new() -> IdentitySecret {
         let (pk, sk) = ed25519::gen_keypair();
         IdentitySecret {
@@ -56,7 +57,7 @@ impl IdentitySecret {
         // strip all comments
         let json = config.as_ref()
             .lines()
-            .filter(|line| !line.starts_with("#"))
+            .filter(|line| !line.starts_with('#'))
             .collect::<Vec<_>>()
             .join("");
 
@@ -75,3 +76,5 @@ impl IdentitySecret {
         })
     } 
 }
+
+

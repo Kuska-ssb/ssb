@@ -1,4 +1,7 @@
+use std::str::FromStr;
+
 use serde_json::Value;
+
 use super::message::Message;
 use super::ssb_sha256;
 use super::error::{Error,Result};
@@ -12,7 +15,15 @@ pub struct Feed {
 }
 
 impl Feed {
-    pub fn from_str(s : &str) -> Result<Self> {
+    pub fn into_message(self) -> Result<Message>  {
+        Message::from_value(self.value)
+    }
+}
+
+impl FromStr for Feed {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let feed : Feed = serde_json::from_str(&s)?;
         let digest = format!("%{}.sha256",base64::encode(&ssb_sha256(&feed.value)?));
 
@@ -22,11 +33,7 @@ impl Feed {
 
         Ok(feed)
     }
-    pub fn into_message(self) -> Result<Message>  {
-        Message::from_value(self.value)
-    }
 }
-
 
 #[cfg(test)]
 mod test {

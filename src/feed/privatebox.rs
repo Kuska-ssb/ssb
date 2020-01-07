@@ -21,7 +21,7 @@ pub fn is_privatebox(text : &str) -> bool {
 
 pub fn privatebox_cipher(plaintext : &str, recipients: &[&str]) -> Result<String> {
     let recipients : crate::crypto::Result<Vec<_>> = recipients
-        .into_iter()
+        .iter()
         .map(|id| {
             id[1..].to_ed25519_pk()
         }).collect();
@@ -52,7 +52,7 @@ fn cipher(plaintext : &[u8], recipients : &[&ed25519::PublicKey]) -> Result<Box<
         return Err(Error::EmptyPlaintext);
     }
 
-    if recipients.len() == 0 || recipients.len() > MAX_RECIPIENTS as usize{
+    if recipients.is_empty() || recipients.len() > MAX_RECIPIENTS as usize{
         return Err(Error::BadRecipientCount);
     }
 
@@ -71,7 +71,7 @@ fn cipher(plaintext : &[u8], recipients : &[&ed25519::PublicKey]) -> Result<Box<
     let h_sk_scalar = &h_sk.to_curve25519();
     let mut plain_header = [0u8;RECIPIENT_COUNT_LEN+secretbox::KEYBYTES];
     plain_header[0]=recipients.len() as u8;
-    &plain_header[RECIPIENT_COUNT_LEN..].copy_from_slice(&y[..]);
+    plain_header[RECIPIENT_COUNT_LEN..].copy_from_slice(&y[..]);
 
     let mut buffer : Vec<u8> = Vec::with_capacity(   
         secretbox::NONCEBYTES  
@@ -114,7 +114,7 @@ fn decipher(ciphertext : &[u8], sk : &SecretKey) -> Result<Option<Vec<u8>>> {
         .map_err(|_| Error::CannotCreateKey)?;
 
     let mut header_no = 0;
-    while header_no < MAX_RECIPIENTS && cursor.len() >= ENCRYPTED_HEADER_LEN+secretbox::MACBYTES+1 {
+    while header_no < MAX_RECIPIENTS && cursor.len() > ENCRYPTED_HEADER_LEN+secretbox::MACBYTES {
         if let Ok(header) = secretbox::open(&cursor[..ENCRYPTED_HEADER_LEN], &nonce, &key) {
             let encrypted_message_offset = ENCRYPTED_HEADER_LEN*(header[0]-header_no) as usize;
             let y =  secretbox::Key::from_slice(&header[1..])

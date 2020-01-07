@@ -1,4 +1,5 @@
 use std::time::SystemTime;
+use std::str::FromStr;
 
 use sodiumoxide::crypto::{sign::ed25519};
 use serde_json::Value;
@@ -94,10 +95,6 @@ impl Message {
         Ok(Message { value : Value::Object(value) })
     }
 
-    pub fn from_str(s : &str) -> Result<Self> {
-        Self::from_value(serde_json::from_str::<Value>(&s)?)
-    }
-
     pub fn from_slice(s : &[u8]) -> Result<Self> {
         Self::from_value(serde_json::from_slice(&s)?)
     }
@@ -172,6 +169,14 @@ impl Message {
             .unwrap()
     }
 
+}
+
+impl FromStr for Message {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Message::from_value(serde_json::from_str::<Value>(&s)?)
+    }
 }
 
 impl ToString for Message {

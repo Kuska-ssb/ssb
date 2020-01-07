@@ -177,8 +177,7 @@ impl Iterator for FeedStorageIterator {
         let size = u32::from_be_bytes(size_buf);
 
         // read compressed data
-        let mut compressed : Vec<u8> = Vec::with_capacity(size as usize);
-        compressed.resize(size as usize, 0);
+        let mut compressed = vec![0; size as usize];
         if let Err(err) = self.file.read_exact(&mut compressed[..]) {
             return Some(Err(Error::Io(err)));
         }
@@ -241,8 +240,7 @@ impl Iterator for FeedStorageReverseIterator {
         }
 
         // read compressed data
-        let mut compressed : Vec<u8> = Vec::with_capacity(size as usize);
-        compressed.resize(size as usize, 0);
+        let mut compressed = vec![0u8; size as usize];
         if let Err(err) = self.file.read_exact(&mut compressed[..]) {
             return Some(Err(Error::Io(err)));
         }

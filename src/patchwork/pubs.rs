@@ -12,14 +12,14 @@ pub struct Invite {
 
 impl Invite {
     pub fn from_code(code : &str) -> Result<Self> {
-        let domain_port_keys : Vec<_> = code.split(":").collect();
+        let domain_port_keys : Vec<_> = code.split(':').collect();
         if domain_port_keys.len() != 3 {
             return Err(Error::InvalidInviteCode);
         }
 
         let domain = domain_port_keys[0].to_string();
         let port = domain_port_keys[1].parse::<u16>()?;
-        let pk_sk :Vec<_> = domain_port_keys[2].split("~").collect();
+        let pk_sk :Vec<_> = domain_port_keys[2].split('~').collect();
 
         if pk_sk.len() != 2 {
             return Err(Error::InvalidInviteCode);

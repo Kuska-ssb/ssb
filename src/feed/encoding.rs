@@ -59,7 +59,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
             }
             Value::Number(value) => {
                 let mut as_str = value.to_string();
-                if as_str.contains("e") && !as_str.contains("e-") {
+                if as_str.contains('e') && !as_str.contains("e-") {
                     as_str = as_str.replace("e","e+")
                 } 
                 buffer.push_str(&as_str);

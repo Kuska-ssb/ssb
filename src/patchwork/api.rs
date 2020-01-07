@@ -1,5 +1,6 @@
 use async_std::io::{Read, Write};
 use serde_json;
+use std::str::FromStr;
 
 use crate::rpc::{RpcClient, Header, RequestNo, RpcType};
 use crate::feed::Message;
@@ -189,7 +190,7 @@ impl<'a> CreateHistoryStreamArgs<'a> {
             limit: None,
         }
     }
-    pub fn from_seq(self: Self, seq: u64) -> Self {
+    pub fn starting_seq(self: Self, seq: u64) -> Self {
         Self {
             seq: Some(seq),
             ..self
@@ -219,7 +220,7 @@ impl<'a> CreateHistoryStreamArgs<'a> {
 
 fn parse_json<'a, T: serde::Deserialize<'a>>(
     header: &'a Header,
-    body: &'a Vec<u8>,
+    body: &'a [u8],
 ) -> Result<T> {
     if header.is_end_or_error {
         let error: ErrorRes = serde_json::from_slice(&body[..])?;
@@ -230,20 +231,20 @@ fn parse_json<'a, T: serde::Deserialize<'a>>(
     }
 }
 
-pub fn parse_whoami(header: &Header, body: &Vec<u8>) -> Result<WhoAmI> {
-    parse_json::<WhoAmI>(&header, &body)
+pub fn parse_whoami(header: &Header, body: &[u8]) -> Result<WhoAmI> {
+    parse_json::<WhoAmI>(&header, body)
 }
 
-pub fn parse_message(header: &Header, body: &Vec<u8>) -> Result<Message> {
+pub fn parse_message(header: &Header, body: &[u8]) -> Result<Message> {
     if header.is_end_or_error {
         let error: ErrorRes = serde_json::from_slice(&body[..])?;
         Err(Error::ServerMessage(format!("{:?}", error)))
     } else {
-        Ok(Message::from_slice(body.as_slice())?)
+        Ok(Message::from_slice(body)?)
     }
 }
 
-pub fn parse_feed(header: &Header, body: &Vec<u8>) -> Result<Feed> {
+pub fn parse_feed(header: &Header, body: &[u8]) -> Result<Feed> {
     if header.is_end_or_error {
         let error: ErrorRes = serde_json::from_slice(&body[..])?;
         Err(Error::ServerMessage(format!("{:?}", error)))
@@ -252,8 +253,8 @@ pub fn parse_feed(header: &Header, body: &Vec<u8>) -> Result<Feed> {
     }
 }
 
-pub fn parse_latest(header: &Header, body: &Vec<u8>) -> Result<LatestUserMessage> {
-    parse_json::<LatestUserMessage>(&header, &body)
+pub fn parse_latest(header: &Header, body: &[u8]) -> Result<LatestUserMessage> {
+    parse_json::<LatestUserMessage>(&header, body)
 }
 
 pub struct ApiClient<R: Read + Unpin, W: Write + Unpin> {

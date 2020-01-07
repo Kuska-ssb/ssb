@@ -1,3 +1,5 @@
+#![allow(clippy::large_enum_variant)]
+
 use std::collections::HashMap;
 
 pub type SsbHash = String;
