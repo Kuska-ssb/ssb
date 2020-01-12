@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -26,7 +28,7 @@ async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo,
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&Vec<u8>)->Result<T>,
+    F: Fn(&Header,&[u8])->Result<T>,
     T: Debug
 {
     loop {
@@ -37,7 +39,7 @@ where
     }
 }
 
-async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, command: &str) -> AnyResult<bool> {
+async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, _command: &str) -> AnyResult<bool> {
   let req_id = api.send_whoami().await?;
   let whoami = get_async(api,-req_id,parse_whoami).await?.id;
 

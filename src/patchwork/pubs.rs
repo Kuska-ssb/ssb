@@ -34,5 +34,5 @@ impl Invite {
 
 #[cfg(test)]
 mod test {
-    const picopub : &str = "ssb-pub.picodevelopment.nl:8008:@UFDjYpDN89OTdow4sqZP5eEGGcy+1eN/HNc5DMdMI0M=.ed25519~ibtGafFt7myC9yEyJ6Oq7gWuS2+2ue9XI3iyE9QXSwI=";
+    // const picopub : &str = "ssb-pub.picodevelopment.nl:8008:@UFDjYpDN89OTdow4sqZP5eEGGcy+1eN/HNc5DMdMI0M=.ed25519~ibtGafFt7myC9yEyJ6Oq7gWuS2+2ue9XI3iyE9QXSwI=";
 }

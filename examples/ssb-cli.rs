@@ -20,7 +20,7 @@ async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo,
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&Vec<u8>)->Result<T>,
+    F: Fn(&Header,&[u8])->Result<T>,
     T: Debug
 {
     loop {
@@ -35,7 +35,7 @@ async fn print_source_until_eof<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&Vec<u8>)->Result<T>,
+    F: Fn(&Header,&[u8])->Result<T>,
     T: Debug+serde::Deserialize<'a>
 {
     loop {
@@ -130,7 +130,7 @@ async fn main() -> AnyResult<()> {
                     &args[1]
                 };
 
-                let show_private = |header: &Header, body: &Vec<u8>| {
+                let show_private = |header: &Header, body: &[u8]| {
                     let msg = parse_feed(header,body)?.into_message()?;
                     if let serde_json::Value::String(content) = msg.content() {
                         if is_privatebox(&content) {
