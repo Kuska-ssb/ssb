@@ -1,6 +1,6 @@
 [package]
 name = "kuska-ssb"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Dhole <dhole@riseup.net>", "Adria Massanet <adria@codecontext.io>"]
 edition = "2018"
 
@@ -8,27 +8,18 @@ edition = "2018"
 name = "kuska_ssb"
 
 [dependencies]
-kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "feature/moderror" , features=["sync","async_std"] }
+kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "master" , features=["sync","async_std"] }
 
 sodiumoxide = { git = "https://github.com/Dhole/sodiumoxidez", branch = "extra" }
 base64 = "0.11.0"
 hex = "0.4.0"
-async-std = { version = "1.1.0", features=["unstable","attributes"] }
+async-std = { version = "1.4.0", features=["unstable","attributes"] }
 crossbeam = "0.7.3"
 log = "0.4.8"
 env_logger = "0.7.1"
-serde = "1.0.104"
-serde_json = { version = "1.0.41", features=["preserve_order","arbitrary_precision"] }
-serde_derive = "1.0.104"
+serde = { version = "1.0.104", features = ["derive"] }
+serde_json = { version = "1.0.48", features=["preserve_order","arbitrary_precision"] }
 dirs = "2.0"
-futures = "0.3.1"
-snap = "0.2.5"
-signal-hook = "0.1.12"
+futures = "0.3.4"
 lazy_static = "1.4.0"
-rand = "0.7.2"
-
-[dev-dependencies]
-kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "feature/moderror", features=["sync","async_std","tokio_compat"] }
-tokio = { version = "0.2.6", features=["full"] }
-actix-rt = "1.0.0"
-actix-web = "2.0.0"
+rand = "0.7.3"

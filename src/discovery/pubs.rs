@@ -1,25 +1,25 @@
-use sodiumoxide::crypto::sign::ed25519;
 use crate::crypto::ToSodiumObject;
+use sodiumoxide::crypto::sign::ed25519;
 
-use super::error::{Error,Result};
+use super::error::{Error, Result};
 
 pub struct Invite {
-    pub domain : String,
-    pub port : u16,
+    pub domain: String,
+    pub port: u16,
     pub pub_pk: ed25519::PublicKey,
     pub invite_sk: ed25519::SecretKey,
 }
 
 impl Invite {
-    pub fn from_code(code : &str) -> Result<Self> {
-        let domain_port_keys : Vec<_> = code.split(':').collect();
+    pub fn from_code(code: &str) -> Result<Self> {
+        let domain_port_keys: Vec<_> = code.split(':').collect();
         if domain_port_keys.len() != 3 {
             return Err(Error::InvalidInviteCode);
         }
 
         let domain = domain_port_keys[0].to_string();
         let port = domain_port_keys[1].parse::<u16>()?;
-        let pk_sk :Vec<_> = domain_port_keys[2].split('~').collect();
+        let pk_sk: Vec<_> = domain_port_keys[2].split('~').collect();
 
         if pk_sk.len() != 2 {
             return Err(Error::InvalidInviteCode);
@@ -27,9 +27,13 @@ impl Invite {
         let pub_pk = pk_sk[0][1..].to_ed25519_pk()?;
         let invite_sk = pk_sk[1][..].to_ed25519_sk_no_suffix()?;
 
-        Ok(Invite { domain, port, pub_pk, invite_sk })
+        Ok(Invite {
+            domain,
+            port,
+            pub_pk,
+            invite_sk,
+        })
     }
-
 }
 
 #[cfg(test)]
