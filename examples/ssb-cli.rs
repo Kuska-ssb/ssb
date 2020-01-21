@@ -64,12 +64,12 @@ async fn main() -> AnyResult<()> {
 
     let mut socket = TcpStream::connect("127.0.0.1:8008").await?;
 
-    let (_,handshake) = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), pk).await?;
+    let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), pk).await?;
 
     println!("💃 handshake complete");
 
     let (box_stream_read, box_stream_write) =
-        BoxStream::from_handhake(&socket, &socket, handshake, 0x8000)
+        BoxStream::from_handhake(&mut socket, handshake, 0x8000)
         .split_read_write();
 
     let mut client = ApiClient::new(RpcClient::new(box_stream_read, box_stream_write));

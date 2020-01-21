@@ -74,9 +74,9 @@ async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<
   .expect("read local secret");
   
   let tokio_socket : TcpStream = TcpStream::connect("127.0.0.1:8008").await?;
-  let asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
+  let mut asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
 
-  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
+  let handshake = handshake_client(&mut asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
 
  
   let mut tokio_socket = asyncstd_socket.into_inner();
@@ -86,7 +86,7 @@ async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<
   let write = TokioCompatExtWrite::wrap(write);
 
   let (box_stream_read, box_stream_write) =
-    BoxStream::from_handhake(read, write, handshake, 0x8000)
+    BoxStream::from_handshake(read, write, handshake, 0x8000)
     .split_read_write();
 
   let rpc = RpcClient::new(box_stream_read, box_stream_write);
@@ -127,9 +127,9 @@ async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiv
   .expect("read local secret");
   
   let tokio_socket : TcpStream = TcpStream::connect("127.0.0.1:8008").await?;
-  let asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
+  let mut asyncstd_socket = TokioCompatExt::wrap(tokio_socket);
 
-  let (asyncstd_socket,handshake) = handshake_client(asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
+  let handshake = handshake_client(&mut asyncstd_socket, ssb_net_id(), pk, sk.clone(), pk).await?;
 
   println!("💃 handshake complete");
  
@@ -140,7 +140,7 @@ async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiv
   let write = TokioCompatExtWrite::wrap(write);
 
   let (box_stream_read, box_stream_write) =
-    BoxStream::from_handhake(read, write, handshake, 0x8000)
+    BoxStream::from_handshake(read, write, handshake, 0x8000)
     .split_read_write();
 
   let rpc = RpcClient::new(box_stream_read, box_stream_write);

@@ -8,7 +8,7 @@ edition = "2018"
 name = "kuska_ssb"
 
 [dependencies]
-kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "feature/moderror" , features=["sync","async_std"] }
+kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "master" , features=["sync","async_std"] }
 
 sodiumoxide = { git = "https://github.com/Dhole/sodiumoxidez", branch = "extra" }
 base64 = "0.11.0"
@@ -28,7 +28,7 @@ lazy_static = "1.4.0"
 rand = "0.7.2"
 
 [dev-dependencies]
-kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "feature/moderror", features=["sync","async_std","tokio_compat"] }
+kuska-handshake = { git = "https://github.com/Kuska-ssb/kuska-handshake", branch = "master", features=["sync","async_std","tokio_compat"] }
 tokio = { version = "0.2.6", features=["full"] }
 actix-rt = "1.0.0"
 actix-web = "2.0.0"
