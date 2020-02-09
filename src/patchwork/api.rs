@@ -2,11 +2,11 @@ use async_std::io::{Read, Write};
 use serde_json;
 use std::str::FromStr;
 
-use crate::rpc::{RpcClient, Header, RequestNo, RpcType, Body};
+use crate::rpc::{RpcStream, RequestNo, RpcType};
 use crate::feed::Message;
 use crate::feed::Feed;
 
-use super::error::{Error,Result};
+use super::error::Result;
 
 #[derive(Debug, Deserialize)]
 pub struct ErrorRes {
@@ -217,80 +217,47 @@ impl<'a> CreateHistoryStreamArgs<'a> {
     }
 }
 
-
-fn parse_json<'a, T: serde::Deserialize<'a>>(
-    header: &'a Header,
-    body: &'a [u8],
-) -> Result<T> {
-    if header.is_end_or_error {
-        let error: ErrorRes = serde_json::from_slice(&body[..])?;
-        Err(Error::ServerMessage(format!("{:?}", error)))
-    } else {
-        let res: T = serde_json::from_slice(&body[..])?;
-        Ok(res)
-    }
+pub fn parse_whoami(body: &[u8]) -> Result<WhoAmI> {
+    Ok(serde_json::from_slice(body)?)
 }
 
-pub fn parse_whoami(header: &Header, body: &[u8]) -> Result<WhoAmI> {
-    parse_json::<WhoAmI>(&header, body)
+pub fn parse_message(body: &[u8]) -> Result<Message> {
+    Ok(serde_json::from_slice(body)?)
 }
 
-pub fn parse_message(header: &Header, body: &[u8]) -> Result<Message> {
-    if header.is_end_or_error {
-        let error: ErrorRes = serde_json::from_slice(&body[..])?;
-        Err(Error::ServerMessage(format!("{:?}", error)))
-    } else {
-        Ok(Message::from_slice(body)?)
-    }
+pub fn parse_feed(body: &[u8]) -> Result<Feed> {
+    Ok(Feed::from_str(&String::from_utf8_lossy(body))?)
 }
 
-pub fn parse_feed(header: &Header, body: &[u8]) -> Result<Feed> {
-    if header.is_end_or_error {
-        let error: ErrorRes = serde_json::from_slice(&body[..])?;
-        Err(Error::ServerMessage(format!("{:?}", error)))
-    } else {
-        Ok(Feed::from_str(&String::from_utf8_lossy(&body))?)
-    }
-}
-
-pub fn parse_latest(header: &Header, body: &[u8]) -> Result<LatestUserMessage> {
-    parse_json::<LatestUserMessage>(&header, body)
+pub fn parse_latest(body: &[u8]) -> Result<LatestUserMessage> {
+    Ok(serde_json::from_slice(body)?)
 }
 
 pub struct ApiClient<R: Read + Unpin, W: Write + Unpin> {
-    rpc: RpcClient<R, W>,
+    rpc: RpcStream<R, W>,
 }
 
 impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
-    pub fn new(rpc: RpcClient<R, W>) -> Self {
+    pub fn new(rpc: RpcStream<R, W>) -> Self {
         Self { rpc }
     }
 
-    pub fn rpc(&mut self) -> &mut RpcClient<R, W> {
+    pub fn rpc(&mut self) -> &mut RpcStream<R, W> {
         &mut self.rpc
     }
 
     // whoami: sync
     // Get information about the current ssb-server user.
     pub async fn send_whoami(&mut self) -> Result<RequestNo> {
-        let body = Body {
-            name : vec!["whoami".to_string()],
-            rpc_type : RpcType::Async,
-            args : Vec::<String>::new()
-        };
-        let req_no = self.rpc.send(&body).await?;
+        let args: [&str; 0] = [];
+        let req_no = self.rpc.send_request(&["whoami"], RpcType::Async, &args).await?;
         Ok(req_no)
     }
 
     // get: async
     // Get a message by its hash-id. (sould start with %)
     pub async fn send_get(&mut self, msg_id: &str) -> Result<RequestNo> {
-        let body = Body {
-            name : vec!["get".to_string()],
-            rpc_type : RpcType::Async,
-            args : vec![msg_id.to_string()]
-        };
-        let req_no = self.rpc.send(&body).await?;
+        let req_no = self.rpc.send_request(&["get"], RpcType::Async, &msg_id).await?;
         Ok(req_no)
     }
     // createHistoryStream: source
@@ -299,12 +266,10 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
         &mut self,
         args: &'a CreateHistoryStreamArgs<'a>,
     ) -> Result<RequestNo> {
-        let body = Body {
-            name : vec!["createHistoryStream".to_string()],
-            rpc_type : RpcType::Source,
-            args : args
-        };
-        let req_no = self.rpc.send(&body).await?;
+        let req_no = self
+            .rpc
+            .send_request(&["createHistoryStream"], RpcType::Source, &args)
+            .await?;
         Ok(req_no)
     }
 
@@ -314,24 +279,18 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
         &mut self,
         args: &'a CreateStreamArgs<u64>,
     ) -> Result<RequestNo> {
-        let body = Body {
-            name : vec!["createFeedStream".to_string()],
-            rpc_type : RpcType::Source,
-            args
-        };
-        let req_no = self.rpc.send(&body).await?;
+        let req_no = self
+            .rpc
+            .send_request(&["createFeedStream"], RpcType::Source, &args)
+            .await?;
         Ok(req_no)
     }
 
     // latest: source
     // Get the seq numbers of the latest messages of all users in the database.
     pub async fn send_latest(&mut self) -> Result<RequestNo> {
-        let body = Body {
-            name : vec!["latest".to_string()],
-            rpc_type : RpcType::Source,
-            args : Vec::<String>::new(),
-        };
-        let req_no = self.rpc.send(&body).await?;
+        let args: [&str; 0] = [];
+        let req_no = self.rpc.send_request(&["latest"], RpcType::Source, &args).await?;
         Ok(req_no)
     }
 }

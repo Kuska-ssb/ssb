@@ -38,7 +38,7 @@ macro_rules! cast_opt {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug,Deserialize)]
 pub struct Message {
     value: serde_json::Value,
 }
