@@ -10,9 +10,10 @@ use async_std::io::{Read,Write};
 use async_std::net::TcpStream;
 
 use kuska_handshake::async_std::{handshake_client,BoxStream};
-use kuska_ssb::rpc::{Header,RequestNo,RpcClient};
+use kuska_ssb::rpc::{RecvMsg,RequestNo,RpcStream};
 use kuska_ssb::patchwork::*;
 use kuska_ssb::feed::{is_privatebox,privatebox_decipher};
+use kuska_ssb::patchwork::{parse_feed,parse_latest,parse_message,parse_whoami};
 
 type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -20,13 +21,21 @@ async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo,
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&[u8])->Result<T>,
+    F: Fn(&[u8])->Result<T>,
     T: Debug
 {
     loop {
-        let (header,body) = client.rpc().recv().await?;
-        if header.req_no == req_no {
-            return f(&header,&body).map_err(|err| err.into());
+        let (id,msg) = client.rpc().recv().await?;
+        if id == req_no {
+            match msg {
+                RecvMsg::BodyResponse(body) => {
+                    return f(&body).map_err(|err| err.into());
+                }
+                RecvMsg::ErrorResponse(message) => {
+                    println!(" 😢 Failed {:}",message);
+                }
+                _ => unreachable!()
+             }
         }
     }
 }
@@ -35,23 +44,26 @@ async fn print_source_until_eof<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&[u8])->Result<T>,
+    F: Fn(&[u8])->Result<T>,
     T: Debug+serde::Deserialize<'a>
 {
     loop {
-        let (header,body) = client.rpc().recv().await?;
-        if header.req_no == req_no {
-            if !header.is_end_or_error {
-                match f(&header,&body) {
-                    Ok(res) => { println!("{:?}",res) },
-                    Err(err) => println!(" 😢 Failed :( {:?} {}",err,String::from_utf8_lossy(&body)),
+        let (id,msg) = client.rpc().recv().await?;
+        if id == req_no {
+            match msg {
+                RecvMsg::BodyResponse(body) => {
+                    let display = f(&body)?;
+                    println!("{:?}",display);
                 }
-            } else {
-                println!("STREAM FINISHED");
-                return Ok(())
-            }
+                RecvMsg::ErrorResponse(message) => {
+                    println!(" 😢 Failed {:}",message);
+                }
+                RecvMsg::CancelStreamRespose() => break,
+                _ => unreachable!()
+             }
         }
     }
+    Ok(())
 }
 
 #[async_std::main]
@@ -72,10 +84,10 @@ async fn main() -> AnyResult<()> {
         BoxStream::from_handshake(&socket,&socket,handshake, 0x8000)
         .split_read_write();
 
-    let mut client = ApiClient::new(RpcClient::new(box_stream_read, box_stream_write));
+    let mut client = ApiClient::new(RpcStream::new(box_stream_read, box_stream_write));
 
     let req_id = client.send_whoami().await?;    
-    let whoami = get_async(&mut client,-req_id,parse_whoami).await?.id;
+    let whoami = get_async(&mut client,req_id,parse_whoami).await?.id;
 
     println!("😊 server says hello to {}",whoami);
 
@@ -100,7 +112,7 @@ async fn main() -> AnyResult<()> {
                     args[1].clone()
                 };
                 let req_id = client.send_get(&msg_id).await?;
-                let msg = get_async(&mut client,-req_id,parse_message).await?;
+                let msg = get_async(&mut client,req_id,parse_message).await?;
                 println!("{:?}",msg);
             }
             ("user",2) => {
@@ -112,16 +124,16 @@ async fn main() -> AnyResult<()> {
 
                 let args = CreateHistoryStreamArgs::new(&user_id);
                 let req_id = client.send_create_history_stream(&args).await?;
-                print_source_until_eof(&mut client, -req_id, parse_feed).await?;
+                print_source_until_eof(&mut client, req_id, parse_feed).await?;
             }
             ("feed",1) => {
                 let args = CreateStreamArgs::default();
                 let req_id = client.send_create_feed_stream(&args).await?;
-                print_source_until_eof(&mut client, -req_id, parse_feed).await?;
+                print_source_until_eof(&mut client, req_id, parse_feed).await?;
             }
             ("latest",1) => {
                 let req_id = client.send_latest().await?;
-                print_source_until_eof(&mut client, -req_id, parse_latest).await?;
+                print_source_until_eof(&mut client, req_id, parse_latest).await?;
             }
             ("private",2) => {
                 let user_id = if args[1] == "me" {
@@ -130,8 +142,8 @@ async fn main() -> AnyResult<()> {
                     &args[1]
                 };
 
-                let show_private = |header: &Header, body: &[u8]| {
-                    let msg = parse_feed(header,body)?.into_message()?;
+                let show_private = |body: &[u8]| {
+                    let msg = parse_feed(body)?.into_message()?;
                     if let serde_json::Value::String(content) = msg.content() {
                         if is_privatebox(&content) {
                             let ret = privatebox_decipher(&content, &sk)?
@@ -145,7 +157,7 @@ async fn main() -> AnyResult<()> {
                 let args = CreateHistoryStreamArgs::new(&user_id);
                 let req_id = client.send_create_history_stream(&args).await?;
 
-                print_source_until_eof(&mut client, -req_id, show_private).await?;
+                print_source_until_eof(&mut client, req_id, show_private).await?;
             }
             _ => println!("unknown command {}",line_buffer),
         }

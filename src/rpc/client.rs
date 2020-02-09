@@ -17,38 +17,36 @@ const RPC_HEADER_STREAM_FLAG : u8 = 1 << 3;
 const RPC_HEADER_END_OR_ERROR_FLAG : u8 = 1 << 2;
 const RPC_HEADER_BODY_TYPE_MASK : u8 = 0b11;
 
-#[derive(Debug,PartialEq)]
+#[derive(Copy, Clone, Debug,PartialEq)]
 pub enum BodyType {
     Binary,
     UTF8,
     JSON,
 }
 
-/*
-    let mut body = String::from("{\"name\":");
-    body.push_str(&serde_json::to_string(&name)?);
-    body.push_str(",\"type\":\"");
-    body.push_str(rpc_type.rpc_id());
-    body.push_str("\",\"args\":[");
-    body.push_str(&serde_json::to_string(&args)?);
-    body.push_str("]}");
-*/
-
-#[derive(Serialize)]
-pub struct Body<T:serde::Serialize> {
+#[derive(Deserialize)]
+pub struct Body {
     pub name : Vec<String>,
     #[serde(rename="type")]
     pub rpc_type : RpcType,
-    pub args : T,
+    pub args : serde_json::Value,
 }
 
-impl<T:serde::Serialize> Body<T> {
-    pub fn new(name: Vec<String>, rpc_type : RpcType, args:T) -> Self {
-        Body { name, rpc_type, args }
+#[derive(Serialize)]
+pub struct BodyRef<'a,T:serde::Serialize> {
+    pub name : &'a [&'a str],
+    #[serde(rename="type")]
+    pub rpc_type : RpcType,
+    pub args : &'a T,
+}
+
+impl<'a,T:serde::Serialize> BodyRef<'a,T> {
+    pub fn new(name:&'a [&'a str], rpc_type : RpcType, args:&'a T) -> Self {
+        BodyRef { name, rpc_type, args }
     }
 }
 
-#[derive(Serialize,Debug,PartialEq)]
+#[derive(Clone,Copy,Serialize,Deserialize,Debug,PartialEq)]
 pub enum RpcType {
     #[serde(rename="async")]
     Async,
@@ -56,14 +54,6 @@ pub enum RpcType {
     Source,
 }
 
-impl RpcType {
-    pub fn rpc_id(&self) -> &'static str {
-        match self {
-            RpcType::Async => "async",
-            RpcType::Source => "source",
-        }
-    }
-}
 #[derive(Debug,PartialEq)]
 pub struct Header {
     pub req_no : RequestNo,
@@ -71,6 +61,12 @@ pub struct Header {
     pub is_end_or_error : bool,
     pub body_type : BodyType,
     pub body_len : u32,
+}
+
+#[derive(Serialize,Deserialize)]
+struct ErrorMessage<'a> {
+    name : &'a str,
+    message : &'a str,
 }
 
 impl Header {
@@ -126,44 +122,67 @@ impl Header {
     }
 }
 
-pub struct RpcClient<R : io::Read + Unpin, W : io::Write + Unpin> {
+pub struct RpcStream<R : io::Read + Unpin, W : io::Write + Unpin> {
     box_reader : BoxStreamRead<R>,
     box_writer : BoxStreamWrite<W>,
     req_no : RequestNo,
 }
 
-impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
+pub enum RecvMsg {
+    Request(Body),
+    ErrorResponse(String),
+    CancelStreamRespose(),
+    BodyResponse(Vec<u8>),
+}
 
-    pub fn new(box_reader :BoxStreamRead<R>, box_writer :BoxStreamWrite<W>) -> RpcClient<R,W> {
-        RpcClient { box_reader, box_writer, req_no : 0 }
+impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcStream<R,W> {
+
+    pub fn new(box_reader :BoxStreamRead<R>, box_writer :BoxStreamWrite<W>) -> RpcStream<R,W> {
+        RpcStream { box_reader, box_writer, req_no : 0 }
     }
 
-    pub async fn recv(&mut self) -> Result<(Header,Vec<u8>)> {
+    pub async fn recv(&mut self) -> Result<(RequestNo,RecvMsg)> {
         let mut rpc_header_raw = [0u8;9];
         self.box_reader.read_exact(&mut rpc_header_raw[..]).await?;
         let rpc_header = Header::from_slice(&rpc_header_raw[..])?;
 
-        let mut rpc_body : Vec<u8> = vec![0;rpc_header.body_len as usize];
-        self.box_reader.read_exact(&mut rpc_body[..]).await?;
+        let mut body_raw : Vec<u8> = vec![0;rpc_header.body_len as usize];
+        self.box_reader.read_exact(&mut body_raw[..]).await?;
 
-        Ok((rpc_header,rpc_body))
+        if rpc_header.req_no > 0 {
+            let rpc_body = serde_json::from_slice(&body_raw)?;
+            Ok((rpc_header.req_no,RecvMsg::Request(rpc_body)))    
+        } else {
+            if rpc_header.is_end_or_error {
+                if rpc_header.is_stream {
+                    Ok((-rpc_header.req_no,RecvMsg::CancelStreamRespose()))
+                } else {
+                    let err : ErrorMessage = serde_json::from_slice(&body_raw)?;
+                    Ok((-rpc_header.req_no,RecvMsg::ErrorResponse(err.message.to_string())))
+                }
+            } else {
+                Ok((-rpc_header.req_no,RecvMsg::BodyResponse(body_raw)))    
+            }   
+        }
     }
 
-    pub async fn send<T:serde::Serialize>(&mut self, body : &Body<T>) -> Result<RequestNo>{
+    pub async fn send_request<T:serde::Serialize>(&mut self, name: &[&str], rpc_type: RpcType, args : &T) -> Result<RequestNo>{
 
         self.req_no+=1;
 
-        let body_str = serde_json::to_string(body)?;
+        let body_str = serde_json::to_string(&BodyRef {
+            name,
+            rpc_type,
+            args: &[&args],
+        })?;
 
         let rpc_header = Header {
             req_no : self.req_no,
-            is_stream : body.rpc_type == RpcType::Source,
+            is_stream : rpc_type == RpcType::Source,
             is_end_or_error : false,
             body_type : BodyType::JSON,
             body_len : body_str.as_bytes().len() as u32,
         }.to_array();
-
-        println!("\n{}\n",body_str);
 
         self.box_writer.write_all(&rpc_header[..]).await?;
         self.box_writer.write_all(body_str.as_bytes()).await?;
@@ -172,7 +191,45 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         Ok(self.req_no)
     }
 
-    pub async fn send_cancel_stream(&mut self, req_no: RequestNo) -> Result<()> {
+    pub async fn send_response(&mut self, req_no : RequestNo, rpc_type: RpcType, body_type : BodyType, body: &[u8] ) -> Result<()>{
+        self.req_no+=1;
+
+        let rpc_header = Header {
+            req_no,
+            is_stream : rpc_type == RpcType::Source,
+            is_end_or_error : false,
+            body_type : body_type,
+            body_len : body.len() as u32,
+        }.to_array();
+
+        self.box_writer.write_all(&rpc_header[..]).await?;
+        self.box_writer.write_all(body).await?;
+        self.box_writer.flush().await?;
+
+        Ok(())
+    }
+
+    pub async fn send_error(&mut self, req_no: RequestNo, message: &str) -> Result<()> {
+        let body_bytes = serde_json::to_string(&ErrorMessage {
+            name : "Error",
+            message
+        })?;
+
+        let rpc_header = Header {
+            req_no,
+            is_stream : false,
+            is_end_or_error : true,
+            body_type : BodyType::UTF8,
+            body_len : body_bytes.as_bytes().len() as u32,
+        }.to_array();
+
+        self.box_writer.write_all(&rpc_header[..]).await?;
+        self.box_writer.write_all(body_bytes.as_bytes()).await?;
+
+        Ok(())
+    }
+
+    pub async fn send_cancel(&mut self, req_no: RequestNo) -> Result<()> {
         let body_bytes = b"true";
         
         let rpc_header = Header {

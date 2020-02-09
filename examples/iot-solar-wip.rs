@@ -17,7 +17,7 @@ use actix_web::{get, web, App, HttpServer, Responder};
 use async_std::io::{Read,Write};
 
 use kuska_handshake::async_std::{BoxStream,handshake_client,TokioCompatExt,TokioCompatExtRead,TokioCompatExtWrite};
-use kuska_ssb::rpc::{Header,RequestNo,RpcClient};
+use kuska_ssb::rpc::{RequestNo,RecvMsg,RpcStream};
 use kuska_ssb::patchwork::*;
 
 use tokio::net::TcpStream;
@@ -28,20 +28,28 @@ async fn get_async<'a,R,W,T,F> (client: &mut ApiClient<R,W>, req_no : RequestNo,
 where
     R: Read+Unpin,
     W: Write+Unpin,
-    F: Fn(&Header,&[u8])->Result<T>,
+    F: Fn(&[u8])->Result<T>,
     T: Debug
 {
     loop {
-        let (header,body) = client.rpc().recv().await?;
-        if header.req_no == req_no {
-            return f(&header,&body).map_err(|err| err.into());
+        let (id,msg) = client.rpc().recv().await?;
+        if id == req_no {
+            match msg {
+                RecvMsg::BodyResponse(body) => {
+                    return f(&body).map_err(|err| err.into());
+                }
+                RecvMsg::ErrorResponse(message) => {
+                    println!(" 😢 Failed {:}",message);
+                }
+                _ => unreachable!()
+             }
         }
     }
 }
 
 async fn run_task<R:Read+Unpin,W:Write+Unpin>(api : &mut ApiClient<R,W>, _command: &str) -> AnyResult<bool> {
   let req_id = api.send_whoami().await?;
-  let whoami = get_async(api,-req_id,parse_whoami).await?.id;
+  let whoami = get_async(api,req_id,parse_whoami).await?.id;
 
   println!("{}",whoami);
 
@@ -89,7 +97,7 @@ async fn sync_loop(command_receiver: Receiver<String>, stop_receiver : Receiver<
     BoxStream::from_handshake(read, write, handshake, 0x8000)
     .split_read_write();
 
-  let rpc = RpcClient::new(box_stream_read, box_stream_write);
+  let rpc = RpcStream::new(box_stream_read, box_stream_write);
   let mut api = ApiClient::new(rpc);
 
   let mut commands_queue : Vec<String> = Vec::new();
@@ -143,7 +151,7 @@ async fn command_loop(command_receiver: Receiver<String>, stop_receiver : Receiv
     BoxStream::from_handshake(read, write, handshake, 0x8000)
     .split_read_write();
 
-  let rpc = RpcClient::new(box_stream_read, box_stream_write);
+  let rpc = RpcStream::new(box_stream_read, box_stream_write);
   let mut api = ApiClient::new(rpc);
 
   let mut commands_queue : Vec<String> = Vec::new();
