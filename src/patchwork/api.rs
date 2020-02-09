@@ -2,7 +2,7 @@ use async_std::io::{Read, Write};
 use serde_json;
 use std::str::FromStr;
 
-use crate::rpc::{RpcClient, Header, RequestNo, RpcType};
+use crate::rpc::{RpcClient, Header, RequestNo, RpcType, Body};
 use crate::feed::Message;
 use crate::feed::Feed;
 
@@ -273,15 +273,24 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
     // whoami: sync
     // Get information about the current ssb-server user.
     pub async fn send_whoami(&mut self) -> Result<RequestNo> {
-        let args: [&str; 0] = [];
-        let req_no = self.rpc.send(&["whoami"], RpcType::Async, &args).await?;
+        let body = Body {
+            name : vec!["whoami".to_string()],
+            rpc_type : RpcType::Async,
+            args : Vec::<String>::new()
+        };
+        let req_no = self.rpc.send(&body).await?;
         Ok(req_no)
     }
 
     // get: async
     // Get a message by its hash-id. (sould start with %)
     pub async fn send_get(&mut self, msg_id: &str) -> Result<RequestNo> {
-        let req_no = self.rpc.send(&["get"], RpcType::Async, &msg_id).await?;
+        let body = Body {
+            name : vec!["get".to_string()],
+            rpc_type : RpcType::Async,
+            args : vec![msg_id.to_string()]
+        };
+        let req_no = self.rpc.send(&body).await?;
         Ok(req_no)
     }
     // createHistoryStream: source
@@ -290,10 +299,12 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
         &mut self,
         args: &'a CreateHistoryStreamArgs<'a>,
     ) -> Result<RequestNo> {
-        let req_no = self
-            .rpc
-            .send(&["createHistoryStream"], RpcType::Source, &args)
-            .await?;
+        let body = Body {
+            name : vec!["createHistoryStream".to_string()],
+            rpc_type : RpcType::Source,
+            args : args
+        };
+        let req_no = self.rpc.send(&body).await?;
         Ok(req_no)
     }
 
@@ -303,18 +314,24 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
         &mut self,
         args: &'a CreateStreamArgs<u64>,
     ) -> Result<RequestNo> {
-        let req_no = self
-            .rpc
-            .send(&["createFeedStream"], RpcType::Source, &args)
-            .await?;
+        let body = Body {
+            name : vec!["createFeedStream".to_string()],
+            rpc_type : RpcType::Source,
+            args
+        };
+        let req_no = self.rpc.send(&body).await?;
         Ok(req_no)
     }
 
     // latest: source
     // Get the seq numbers of the latest messages of all users in the database.
     pub async fn send_latest(&mut self) -> Result<RequestNo> {
-        let args: [&str; 0] = [];
-        let req_no = self.rpc.send(&["latest"], RpcType::Source, &args).await?;
+        let body = Body {
+            name : vec!["latest".to_string()],
+            rpc_type : RpcType::Source,
+            args : Vec::<String>::new(),
+        };
+        let req_no = self.rpc.send(&body).await?;
         Ok(req_no)
     }
 }

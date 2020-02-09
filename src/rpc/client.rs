@@ -24,9 +24,35 @@ pub enum BodyType {
     JSON,
 }
 
-#[derive(Debug,PartialEq)]
+/*
+    let mut body = String::from("{\"name\":");
+    body.push_str(&serde_json::to_string(&name)?);
+    body.push_str(",\"type\":\"");
+    body.push_str(rpc_type.rpc_id());
+    body.push_str("\",\"args\":[");
+    body.push_str(&serde_json::to_string(&args)?);
+    body.push_str("]}");
+*/
+
+#[derive(Serialize)]
+pub struct Body<T:serde::Serialize> {
+    pub name : Vec<String>,
+    #[serde(rename="type")]
+    pub rpc_type : RpcType,
+    pub args : T,
+}
+
+impl<T:serde::Serialize> Body<T> {
+    pub fn new(name: Vec<String>, rpc_type : RpcType, args:T) -> Self {
+        Body { name, rpc_type, args }
+    }
+}
+
+#[derive(Serialize,Debug,PartialEq)]
 pub enum RpcType {
+    #[serde(rename="async")]
     Async,
+    #[serde(rename="source")]
     Source,
 }
 
@@ -38,7 +64,6 @@ impl RpcType {
         }
     }
 }
-
 #[derive(Debug,PartialEq)]
 pub struct Header {
     pub req_no : RequestNo,
@@ -124,28 +149,24 @@ impl<R:io::Read+Unpin , W:io::Write+Unpin> RpcClient<R,W> {
         Ok((rpc_header,rpc_body))
     }
 
-    pub async fn send<T:serde::Serialize>(&mut self, name : &[&str], rpc_type: RpcType, args :&T) -> Result<RequestNo>{
+    pub async fn send<T:serde::Serialize>(&mut self, body : &Body<T>) -> Result<RequestNo>{
 
         self.req_no+=1;
 
-        let mut body = String::from("{\"name\":");
-        body.push_str(&serde_json::to_string(&name)?);
-        body.push_str(",\"type\":\"");
-        body.push_str(rpc_type.rpc_id());
-        body.push_str("\",\"args\":[");
-        body.push_str(&serde_json::to_string(&args)?);
-        body.push_str("]}");
+        let body_str = serde_json::to_string(body)?;
 
         let rpc_header = Header {
             req_no : self.req_no,
-            is_stream : rpc_type == RpcType::Source,
+            is_stream : body.rpc_type == RpcType::Source,
             is_end_or_error : false,
             body_type : BodyType::JSON,
-            body_len : body.len() as u32,
+            body_len : body_str.as_bytes().len() as u32,
         }.to_array();
 
+        println!("\n{}\n",body_str);
+
         self.box_writer.write_all(&rpc_header[..]).await?;
-        self.box_writer.write_all(body.as_bytes()).await?;
+        self.box_writer.write_all(body_str.as_bytes()).await?;
         self.box_writer.flush().await?;
 
         Ok(self.req_no)

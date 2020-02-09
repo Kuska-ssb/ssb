@@ -69,7 +69,7 @@ async fn main() -> AnyResult<()> {
     println!("💃 handshake complete");
 
     let (box_stream_read, box_stream_write) =
-        BoxStream::from_handhake(&mut socket, handshake, 0x8000)
+        BoxStream::from_handshake(&socket,&socket,handshake, 0x8000)
         .split_read_write();
 
     let mut client = ApiClient::new(RpcClient::new(box_stream_read, box_stream_write));
