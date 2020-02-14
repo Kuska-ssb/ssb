@@ -1,6 +1,6 @@
+use super::error::Result;
 use serde_json::Value;
 use sodiumoxide::crypto::hash::sha256;
-use super::error::Result;
 
 pub fn ssb_sha256(v: &Value) -> Result<sha256::Digest> {
     let v8encoding = stringify_json(&v)?
@@ -60,8 +60,8 @@ pub fn stringify_json(v: &Value) -> Result<String> {
             Value::Number(value) => {
                 let mut as_str = value.to_string();
                 if as_str.contains('e') && !as_str.contains("e-") {
-                    as_str = as_str.replace("e","e+")
-                } 
+                    as_str = as_str.replace("e", "e+")
+                }
                 buffer.push_str(&as_str);
             }
             Value::Bool(value) => {
@@ -82,7 +82,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
 mod test {
     use super::*;
 
-    const JSON : &str = r#"{"a":0,"b":1.1,"c":null,"d":true,"f":false,"g":{},"h":{"h1":1},"i":[],"j":[1],"k":[1,2]}"#;
+    const JSON: &str = r#"{"a":0,"b":1.1,"c":null,"d":true,"f":false,"g":{},"h":{"h1":1},"i":[],"j":[1],"k":[1,2]}"#;
     #[test]
     fn test_json_stringify() -> Result<()> {
         let v: Value = serde_json::from_str(JSON)?;
@@ -124,8 +124,8 @@ mod test {
     fn test_msg_with_float_mantissa() -> Result<()> {
         let expected = "RUcldndjJUkEcZ5hX6zAj/xLlnh0n4BZ6ThJOW5RvIk=";
         let message = r#"{"previous":"%gbem82xZNVHbOM2pyOlxymsAfstdMFfGSoawWQtObX8=.sha256","author":"@TXKFQehlyoSn8UJAIVP/k2BjFINC591MlBC2e2d24mA=.ed25519","sequence":1557,"timestamp":1495245157893,"hash":"sha256","content":{"type":"post","transactionHash":9.691449834862513e+76,"address":7.073631810716965e+46,"event":"ActionAdded","text":"{\"actionID\":\"1\",\"amount\":\"0\",\"description\":\"Bind Ethereum events to Secure Scuttlebutt posts\"}}"},"signature":"/Qvm9ozEfl0Thyvs+mnwhLDReZ8xeKXA3hSXOxm53SFkLEnnJ+IF0l7LSqc56Y3vl8FwarJ6k0PGmcU3U8FMAw==.sig.ed25519"}"#;
-        let message_value: Value = serde_json::from_str(&message)?;        
-        let current = base64::encode(&ssb_sha256(&message_value)?);        
+        let message_value: Value = serde_json::from_str(&message)?;
+        let current = base64::encode(&ssb_sha256(&message_value)?);
         assert_eq!(expected, current);
         Ok(())
     }
@@ -134,10 +134,9 @@ mod test {
     fn test_msg_with_float_precision() -> Result<()> {
         let expected = "BUtTVIJyN5fUXzQy2uQfCCzlAg0s6laQQqFIu+kGnFM=";
         let message = r#"{"previous":"%ButTjV+H9VfONhX+lLbJb5LR+W14SFqbmjOfdMPZ5+4=.sha256","sequence":15034,"author":"@6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=.ed25519","timestamp":1567190273951.0159,"hash":"sha256","content":{"type":"vote","channel":null,"vote":{"link":"%GvtUsekEwsCj1cQ6+4Gihkm+ek99BhB537g1xUKjhsA=.sha256","value":1,"expression":"Like"}},"signature":"UkVfqDmBhHrDfMvFT8iUhEispAku/zbdXKCyRVlxYp2wNtJ4okwKE7hTkKhbiMVA7sGIV5dzHZyMotXCL46iDw==.sig.ed25519"}"#;
-        let message_value: Value = serde_json::from_str(&message)?;        
-        let current = base64::encode(&ssb_sha256(&message_value)?);        
+        let message_value: Value = serde_json::from_str(&message)?;
+        let current = base64::encode(&ssb_sha256(&message_value)?);
         assert_eq!(expected, current);
         Ok(())
     }
 }
-

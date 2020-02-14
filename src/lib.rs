@@ -2,11 +2,11 @@ extern crate kuska_handshake;
 
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
 extern crate async_std;
+extern crate serde_json;
 
-pub mod rpc;
 pub mod crypto;
-pub mod patchwork;
-pub mod feed;
 pub mod db;
+pub mod feed;
+pub mod patchwork;
+pub mod rpc;

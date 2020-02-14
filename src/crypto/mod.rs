@@ -1,5 +1,5 @@
-mod sodium;
 mod error;
+mod sodium;
 
-pub use sodium::ToSodiumObject;
-pub use error::{Error,Result};
+pub use error::{Error, Result};
+pub use sodium::{ToSodiumObject, ToSsbId};

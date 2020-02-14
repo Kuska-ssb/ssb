@@ -1,30 +1,27 @@
 use async_std::io::{Read, Write};
 use serde_json;
-use std::str::FromStr;
 
-use crate::rpc::{RpcStream, RequestNo, RpcType};
-use crate::feed::Message;
-use crate::feed::Feed;
+use crate::rpc::{BodyType, RequestNo, RpcStream, RpcType};
 
 use super::error::Result;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorRes {
     pub name: String,
     pub message: String,
     pub stack: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WhoAmI {
     pub id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LatestUserMessage {
     pub id: String,
     pub sequence: u64,
-    pub ts: u64,
+    pub ts: f64,
 }
 
 // https://github.com/ssbc/ssb-db/blob/master/api.md
@@ -154,10 +151,10 @@ impl<K> CreateStreamArgs<K> {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct CreateHistoryStreamArgs<'a> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateHistoryStreamArgs {
     // id (FeedID, required): The id of the feed to fetch.
-    pub id: &'a str,
+    pub id: String,
 
     /// (number, default: 0): If seq > 0, then only stream messages with sequence numbers greater than seq.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -179,8 +176,8 @@ pub struct CreateHistoryStreamArgs<'a> {
     pub limit: Option<u64>,
 }
 
-impl<'a> CreateHistoryStreamArgs<'a> {
-    pub fn new(id: &'a str) -> Self {
+impl CreateHistoryStreamArgs {
+    pub fn new(id: String) -> Self {
         Self {
             id,
             seq: None,
@@ -217,27 +214,44 @@ impl<'a> CreateHistoryStreamArgs<'a> {
     }
 }
 
-pub fn parse_whoami(body: &[u8]) -> Result<WhoAmI> {
-    Ok(serde_json::from_slice(body)?)
+#[derive(Debug)]
+pub enum ApiMethod {
+    WhoAmI,
+    Get,
+    CreateHistoryStream,
+    CreateFeedStream,
+    Latest,
 }
 
-pub fn parse_message(body: &[u8]) -> Result<Message> {
-    Ok(serde_json::from_slice(body)?)
+impl ApiMethod {
+    pub fn selector(&self) -> &'static [&'static str] {
+        use ApiMethod::*;
+        match self {
+            WhoAmI => &["whoami"],
+            Get => &["get"],
+            CreateHistoryStream => &["createHistoryStream"],
+            CreateFeedStream => &["createFeedStream"],
+            Latest => &["latest"],
+        }
+    }
+    pub fn from_selector(s: &[&str]) -> Option<Self> {
+        use ApiMethod::*;
+        match s {
+            ["whoami"] => Some(WhoAmI),
+            ["get"] => Some(Get),
+            ["createHistoryStream"] => Some(CreateHistoryStream),
+            ["createFeedStream"] => Some(CreateFeedStream),
+            ["latest"] => Some(Latest),
+            _ => None,
+        }
+    }
 }
 
-pub fn parse_feed(body: &[u8]) -> Result<Feed> {
-    Ok(Feed::from_str(&String::from_utf8_lossy(body))?)
-}
-
-pub fn parse_latest(body: &[u8]) -> Result<LatestUserMessage> {
-    Ok(serde_json::from_slice(body)?)
-}
-
-pub struct ApiClient<R: Read + Unpin, W: Write + Unpin> {
+pub struct ApiHelper<R: Read + Unpin, W: Write + Unpin> {
     rpc: RpcStream<R, W>,
 }
 
-impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
+impl<R: Read + Unpin, W: Write + Unpin> ApiHelper<R, W> {
     pub fn new(rpc: RpcStream<R, W>) -> Self {
         Self { rpc }
     }
@@ -248,40 +262,68 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
 
     // whoami: sync
     // Get information about the current ssb-server user.
-    pub async fn send_whoami(&mut self) -> Result<RequestNo> {
+    pub async fn whoami_req_send(&mut self) -> Result<RequestNo> {
         let args: [&str; 0] = [];
-        let req_no = self.rpc.send_request(&["whoami"], RpcType::Async, &args).await?;
+        let req_no = self
+            .rpc
+            .send_request(ApiMethod::WhoAmI.selector(), RpcType::Async, &args)
+            .await?;
         Ok(req_no)
+    }
+    pub async fn whoami_res_send(&mut self, req_no: RequestNo, id: String) -> Result<()> {
+        let body = serde_json::to_string(&WhoAmI { id })?;
+        Ok(self
+            .rpc
+            .send_response(req_no, RpcType::Async, BodyType::JSON, body.as_bytes())
+            .await?)
     }
 
     // get: async
     // Get a message by its hash-id. (sould start with %)
-    pub async fn send_get(&mut self, msg_id: &str) -> Result<RequestNo> {
-        let req_no = self.rpc.send_request(&["get"], RpcType::Async, &msg_id).await?;
+    pub async fn get_req_send(&mut self, msg_id: &str) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(ApiMethod::Get.selector(), RpcType::Async, &msg_id)
+            .await?;
         Ok(req_no)
     }
+
     // createHistoryStream: source
     // (hist) Fetch messages from a specific user, ordered by sequence numbers.
-    pub async fn send_create_history_stream<'a>(
+    pub async fn create_history_stream_req_send(
         &mut self,
-        args: &'a CreateHistoryStreamArgs<'a>,
+        args: &CreateHistoryStreamArgs,
     ) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(&["createHistoryStream"], RpcType::Source, &args)
+            .send_request(
+                ApiMethod::CreateHistoryStream.selector(),
+                RpcType::Source,
+                &args,
+            )
             .await?;
         Ok(req_no)
+    }
+    pub async fn feed_res_send(&mut self, req_no: RequestNo, feed: &str) -> Result<()> {
+        self.rpc
+            .send_response(req_no, RpcType::Async, BodyType::JSON, feed.as_bytes())
+            .await?;
+        Ok(())
     }
 
     // createFeedStream: source
     // (feed) Fetch messages ordered by their claimed timestamps.
     pub async fn send_create_feed_stream<'a>(
         &mut self,
-        args: &'a CreateStreamArgs<u64>,
+        args: &CreateStreamArgs<u64>,
     ) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(&["createFeedStream"], RpcType::Source, &args)
+            .send_request(
+                ApiMethod::CreateFeedStream.selector(),
+                RpcType::Source,
+                &args,
+            )
             .await?;
         Ok(req_no)
     }
@@ -290,8 +332,10 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiClient<R, W> {
     // Get the seq numbers of the latest messages of all users in the database.
     pub async fn send_latest(&mut self) -> Result<RequestNo> {
         let args: [&str; 0] = [];
-        let req_no = self.rpc.send_request(&["latest"], RpcType::Source, &args).await?;
+        let req_no = self
+            .rpc
+            .send_request(ApiMethod::Latest.selector(), RpcType::Async, &args)
+            .await?;
         Ok(req_no)
     }
 }
-
