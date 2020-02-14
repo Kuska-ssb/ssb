@@ -1,4 +1,5 @@
 mod error;
-pub mod feeds;
+mod feeds;
 
-pub use error::{Error,Result};
+pub use error::{Error, Result};
+pub use feeds::{FeedStorageIterator, FeedStorageReverseIterator, FeedsStorage};

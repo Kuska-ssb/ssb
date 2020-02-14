@@ -1,5 +1,5 @@
-mod client;
 mod error;
+mod stream;
 
-pub use client::{RpcStream,RecvMsg, RequestNo, RpcType, Body, BodyRef};
-pub use error::{Error,Result};
+pub use error::{Error, Result};
+pub use stream::{Body, BodyType, RecvMsg, RequestNo, RpcStream, RpcType};

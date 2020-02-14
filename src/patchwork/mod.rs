@@ -1,12 +1,11 @@
 mod api;
 mod config;
-mod messagetypes;
 mod error;
+pub mod msgs;
 pub mod pubs;
 
 pub use api::{
-    parse_feed, parse_latest, parse_message, parse_whoami, ApiClient, CreateHistoryStreamArgs,
-    CreateStreamArgs,
+    ApiHelper, ApiMethod, CreateHistoryStreamArgs, CreateStreamArgs, LatestUserMessage, WhoAmI,
 };
 pub use config::{ssb_net_id, IdentitySecret};
-pub use error::{Error,Result};
+pub use error::{Error, Result};

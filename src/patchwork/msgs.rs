@@ -5,19 +5,31 @@ use std::collections::HashMap;
 pub type SsbHash = String;
 pub type SsbId = String;
 
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Mention {
     pub link: SsbId,
     pub name: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct MessageContent {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Post {
     #[serde(rename = "type")]
     pub xtype: String,
     pub text: String,
     pub mentions: Option<Vec<Mention>>,
+}
+
+impl Post {
+    pub fn new(text: String, mentions: Option<Vec<Mention>>) -> Self {
+        Post {
+            xtype: String::from("post"),
+            text,
+            mentions,
+        }
+    }
+    pub fn to_msg(&self) -> serde_json::Result<serde_json::Value> {
+        serde_json::to_value(self)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,16 +96,7 @@ pub enum FeedTypedContent {
     #[serde(rename = "pub")]
     Pub { address: Option<PubAddress> },
     #[serde(rename = "post")]
-    Post {
-        text: Option<String>,
-        post: Option<String>, // the same than text
-        channel: Option<String>,
-        mentions: Option<Mentions>,
-        root: Option<SsbHash>,
-        branch: Option<Branch>,
-        reply: Option<HashMap<SsbHash, SsbId>>,
-        recps: Option<String>,
-    },
+    Post,
     #[serde(rename = "contact")]
     Contact {
         contact: Option<SsbId>,
@@ -118,4 +121,3 @@ pub enum FeedTypedContent {
     #[serde(rename = "vote")]
     Vote { vote: Vote },
 }
-
