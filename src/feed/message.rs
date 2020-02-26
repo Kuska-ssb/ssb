@@ -7,7 +7,7 @@ use sodiumoxide::crypto::sign::ed25519;
 use super::error::{Error, Result};
 use super::{ssb_sha256, stringify_json};
 use crate::crypto::ToSodiumObject;
-use crate::patchwork::IdentitySecret;
+use crate::keystore::OwnedIdentity;
 use sodiumoxide::crypto::hash::sha256;
 
 const MSG_PREVIOUS: &str = "previous";
@@ -58,7 +58,7 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn sign(prev: Option<&Message>, identity: &IdentitySecret, content: Value) -> Result<Self> {
+    pub fn sign(prev: Option<&Message>, identity: &OwnedIdentity, content: Value) -> Result<Self> {
         let mut value: serde_json::Map<String, Value> = serde_json::Map::new();
         if let Some(prev) = prev {
             value.insert(
@@ -206,7 +206,7 @@ mod test {
     #[test]
     fn test_sign_verify() -> Result<()> {
         let content = Value::String("thistest".to_string());
-        let id = IdentitySecret::new();
+        let id = OwnedIdentity::new();
         let msg1 = Message::sign(None, &id, content.clone())?.to_string();
         let msg1 = Message::from_str(&msg1)?;
         let msg2 = Message::sign(Some(&msg1), &id, content)?.to_string();

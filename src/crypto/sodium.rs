@@ -4,9 +4,9 @@ use sodiumoxide::crypto::sign::ed25519;
 
 use super::error::{Error, Result};
 
-const CURVE_ED25519_SUFFIX: &str = ".ed25519";
-const ED25519_SIGNATURE_SUFFIX: &str = ".sig.ed25519";
-const SHA256_SUFFIX: &str = ".sha256";
+pub const CURVE_ED25519_SUFFIX: &str = ".ed25519";
+pub const ED25519_SIGNATURE_SUFFIX: &str = ".sig.ed25519";
+pub const SHA256_SUFFIX: &str = ".sha256";
 
 pub trait ToSodiumObject {
     fn to_ed25519_pk(&self) -> Result<ed25519::PublicKey>;
