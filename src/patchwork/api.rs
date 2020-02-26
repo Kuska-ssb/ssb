@@ -1,7 +1,7 @@
+use crate::feed::Message;
+use crate::rpc::{BodyType, RequestNo, RpcStream, RpcType};
 use async_std::io::{Read, Write};
 use serde_json;
-
-use crate::rpc::{BodyType, RequestNo, RpcStream, RpcType};
 
 use super::error::Result;
 
@@ -286,6 +286,17 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiHelper<R, W> {
             .send_request(ApiMethod::Get.selector(), RpcType::Async, &msg_id)
             .await?;
         Ok(req_no)
+    }
+    pub async fn get_res_send(&mut self, req_no: RequestNo, msg: &Message) -> Result<()> {
+        self.rpc
+            .send_response(
+                req_no,
+                RpcType::Async,
+                BodyType::JSON,
+                msg.to_string().as_bytes(),
+            )
+            .await?;
+        Ok(())
     }
 
     // createHistoryStream: source
