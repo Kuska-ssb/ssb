@@ -8,6 +8,7 @@ use super::error::{Error, Result};
 use super::{ssb_sha256, stringify_json};
 use crate::crypto::ToSodiumObject;
 use crate::patchwork::IdentitySecret;
+use sodiumoxide::crypto::hash::sha256;
 
 const MSG_PREVIOUS: &str = "previous";
 const MSG_AUTHOR: &str = "author";
@@ -37,16 +38,33 @@ macro_rules! cast_opt {
     };
 }
 
+pub struct MessageId(sha256::Digest);
+impl ToString for MessageId {
+    fn to_string(&self) -> String {
+        let digest = base64::encode(&self.0);
+        format!("%{}.sha256", digest)
+    }
+}
+
+impl AsRef<[u8]> for MessageId {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Message {
     pub value: serde_json::Value,
 }
 
 impl Message {
-    pub fn new(prev: Option<&Message>, identity: &IdentitySecret, content: Value) -> Result<Self> {
+    pub fn sign(prev: Option<&Message>, identity: &IdentitySecret, content: Value) -> Result<Self> {
         let mut value: serde_json::Map<String, Value> = serde_json::Map::new();
         if let Some(prev) = prev {
-            value.insert(MSG_PREVIOUS.to_string(), Value::String(prev.id()?));
+            value.insert(
+                MSG_PREVIOUS.to_string(),
+                Value::String(prev.id().to_string()),
+            );
             value.insert(
                 MSG_SEQUENCE.to_string(),
                 Value::Number(serde_json::Number::from(prev.sequence() + 1)),
@@ -120,9 +138,8 @@ impl Message {
         })
     }
 
-    pub fn id(&self) -> Result<String> {
-        let digest = base64::encode(&ssb_sha256(&self.value)?);
-        Ok(format!("%{}.sha256", digest))
+    pub fn id(&self) -> MessageId {
+        MessageId(ssb_sha256(&self.value).unwrap())
     }
 
     pub fn previous(&self) -> Option<&String> {
