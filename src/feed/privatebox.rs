@@ -139,7 +139,7 @@ mod test {
 
     #[test]
     fn test_msg_cipher_to_one_helper() -> Result<()> {
-        let id = OwnedIdentity::new();
+        let id = OwnedIdentity::create();
         let plaintext = "holar";
         let ciphertext = privatebox_cipher(plaintext, &[&id.id])?;
         assert_eq!(is_privatebox(&ciphertext), true);
