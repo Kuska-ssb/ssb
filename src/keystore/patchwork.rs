@@ -20,8 +20,6 @@ fn to_ioerr<T: ToString>(err: T) -> io::Error {
     io::Error::new(io::ErrorKind::Other, err.to_string())
 }
 
-#[allow(clippy::new_without_default)]
-
 pub fn from_patchwork_local() -> Result<OwnedIdentity> {
     let home_dir = dirs::home_dir().ok_or(Error::HomeNotFound)?;
     let local_key_file = format!("{}/.ssb/secret", home_dir.to_string_lossy());
