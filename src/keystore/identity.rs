@@ -9,7 +9,7 @@ pub struct OwnedIdentity {
 }
 
 impl OwnedIdentity {
-    pub fn new() -> OwnedIdentity {
+    pub fn create() -> OwnedIdentity {
         let (pk, sk) = ed25519::gen_keypair();
         OwnedIdentity {
             pk,

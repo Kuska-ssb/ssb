@@ -206,7 +206,7 @@ mod test {
     #[test]
     fn test_sign_verify() -> Result<()> {
         let content = Value::String("thistest".to_string());
-        let id = OwnedIdentity::new();
+        let id = OwnedIdentity::create();
         let msg1 = Message::sign(None, &id, content.clone())?.to_string();
         let msg1 = Message::from_str(&msg1)?;
         let msg2 = Message::sign(Some(&msg1), &id, content)?.to_string();
