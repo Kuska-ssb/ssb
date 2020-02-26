@@ -10,9 +10,13 @@ use async_std::io::{Read, Write};
 use async_std::net::TcpStream;
 
 use kuska_handshake::async_std::{handshake_client, BoxStream};
+use kuska_ssb::api::{
+    ApiHelper, CreateHistoryStreamArgs, CreateStreamArgs, LatestUserMessage, WhoAmI,
+};
+use kuska_ssb::discovery::ssb_net_id;
 use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
-use kuska_ssb::patchwork::*;
-use kuska_ssb::patchwork::{ApiHelper, LatestUserMessage, WhoAmI};
+use kuska_ssb::keystore::from_patchwork_local;
+use kuska_ssb::keystore::OwnedIdentity;
 use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStream};
 
 type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -116,8 +120,7 @@ async fn main() -> AnyResult<()> {
     env_logger::init();
     log::set_max_level(log::LevelFilter::max());
 
-    let IdentitySecret { pk, sk, .. } =
-        IdentitySecret::from_local_config().expect("read local secret");
+    let OwnedIdentity { pk, sk, .. } = from_patchwork_local().expect("read local secret");
 
     let mut socket = TcpStream::connect("127.0.0.1:8080").await?;
     let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), pk).await?;

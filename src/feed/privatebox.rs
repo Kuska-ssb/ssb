@@ -125,7 +125,7 @@ fn decipher(ciphertext: &[u8], sk: &SecretKey) -> Result<Option<Vec<u8>>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::patchwork::IdentitySecret;
+    use crate::keystore::OwnedIdentity;
 
     #[test]
     fn test_msg_cipher_to_one() -> Result<()> {
@@ -139,7 +139,7 @@ mod test {
 
     #[test]
     fn test_msg_cipher_to_one_helper() -> Result<()> {
-        let id = IdentitySecret::new();
+        let id = OwnedIdentity::new();
         let plaintext = "holar";
         let ciphertext = privatebox_cipher(plaintext, &[&id.id])?;
         assert_eq!(is_privatebox(&ciphertext), true);
