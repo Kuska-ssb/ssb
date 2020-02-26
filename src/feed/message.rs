@@ -199,7 +199,7 @@ mod test {
         let message_id = "%Cg0ZpZ8cV85G8UIIropgBOvM8+Srlv9LSGDNGnpdK44=.sha256";
         let message = r#"{"previous":"%seUEAo7PTyA7vNwnOrmGIsUFfpyRzOvzGVv1QCb/Fz8=.sha256","author":"@BIbVppzlrNiRJogxDYz3glUS7G4s4D4NiXiPEAEzxdE=.ed25519","sequence":37,"timestamp":1439392020612,"hash":"sha256","content":{"type":"post","text":"@paul real time replies didn't work.","repliesTo":"%xWKunF6nXD7XMC+D4cjwDMZWmBnmRu69w9T25iLNa1Q=.sha256","mentions":["%7UKRfZb2u8al4tYWHqM55R9xpE/KKVh9U0M6BdugGt4=.sha256"],"recps":[{"link":"@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519","name":"paul"}]},"signature":"gGxSPdBJZxp6x5f3HzQGoQSeSdh/C5AtymIn+miWa+lcC6DdqpRSgaeH9KHeLf+/CKhU6REYIpWaLr4CKDMfCg==.sig.ed25519"}"#;
         let msg = Message::from_str(&message)?;
-        assert_eq!(msg.id()?, message_id);
+        assert_eq!(msg.id().to_string(), message_id);
         Ok(())
     }
 
@@ -207,9 +207,9 @@ mod test {
     fn test_sign_verify() -> Result<()> {
         let content = Value::String("thistest".to_string());
         let id = IdentitySecret::new();
-        let msg1 = Message::new(None, &id, content.clone())?.to_string();
+        let msg1 = Message::sign(None, &id, content.clone())?.to_string();
         let msg1 = Message::from_str(&msg1)?;
-        let msg2 = Message::new(Some(&msg1), &id, content)?.to_string();
+        let msg2 = Message::sign(Some(&msg1), &id, content)?.to_string();
         Message::from_str(&msg2)?;
         Ok(())
     }
