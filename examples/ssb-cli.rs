@@ -3,8 +3,10 @@ extern crate kuska_ssb;
 
 extern crate base64;
 extern crate crossbeam;
+extern crate structopt;
 
 use std::fmt::Debug;
+use structopt::StructOpt;
 
 use async_std::io::{Read, Write};
 use async_std::net::TcpStream;
@@ -13,6 +15,7 @@ use kuska_handshake::async_std::{handshake_client, BoxStream};
 use kuska_ssb::api::{
     ApiHelper, CreateHistoryStreamArgs, CreateStreamArgs, LatestUserMessage, WhoAmI,
 };
+use kuska_ssb::crypto::ToSodiumObject;
 use kuska_ssb::discovery::ssb_net_id;
 use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
 use kuska_ssb::keystore::from_patchwork_local;
@@ -20,6 +23,15 @@ use kuska_ssb::keystore::OwnedIdentity;
 use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStream};
 
 type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "example", about = "An example of StructOpt usage.")]
+struct Opt {
+    /// Connect to server
+    // format is: server:port:<server_id>
+    #[structopt(short, long)]
+    connect: String,
+}
 
 pub fn whoami_res_parse(body: &[u8]) -> AnyResult<WhoAmI> {
     Ok(serde_json::from_slice(body)?)
@@ -120,10 +132,19 @@ async fn main() -> AnyResult<()> {
     env_logger::init();
     log::set_max_level(log::LevelFilter::max());
 
-    let OwnedIdentity { pk, sk, .. } = from_patchwork_local().expect("read local secret");
+    let OwnedIdentity { pk, sk, id } = from_patchwork_local().await.expect("read local secret");
+    println!("connecting with identity {}", id);
 
-    let mut socket = TcpStream::connect("127.0.0.1:8080").await?;
-    let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), pk).await?;
+    let opt = Opt::from_args();
+    let connect: Vec<_> = opt.connect.split(":").collect();
+    if connect.len() != 3 {
+        panic!("connection string should be server:port:id");
+    }
+    let server_pk = connect[2][1..].to_ed25519_pk()?;
+
+    let mut socket = TcpStream::connect(format!("{}:{}", connect[0], connect[1])).await?;
+
+    let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), server_pk).await?;
 
     println!("💃 handshake complete");
 

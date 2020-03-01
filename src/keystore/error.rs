@@ -2,8 +2,9 @@
 pub enum Error {
     HomeNotFound,
     InvalidConfig,
+    Serde(serde_json::Error),
     CryptoFormat(crate::crypto::Error),
-    Io(std::io::Error),
+    SyncIo(std::io::Error),
 }
 impl From<crate::crypto::Error> for Error {
     fn from(err: crate::crypto::Error) -> Self {
@@ -13,7 +14,13 @@ impl From<crate::crypto::Error> for Error {
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
-        Error::Io(err)
+        Error::SyncIo(err)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Error::Serde(err)
     }
 }
 
