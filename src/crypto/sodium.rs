@@ -26,6 +26,12 @@ impl<'a> ToSsbId for ed25519::PublicKey {
     }
 }
 
+impl<'a> ToSsbId for ed25519::SecretKey {
+    fn to_ssb_id(&self) -> String {
+        format!("{}{}", base64::encode(self), CURVE_ED25519_SUFFIX)
+    }
+}
+
 impl ToSodiumObject for str {
     fn to_ed25519_pk(self: &str) -> Result<ed25519::PublicKey> {
         if !self.ends_with(CURVE_ED25519_SUFFIX) {

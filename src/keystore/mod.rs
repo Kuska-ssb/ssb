@@ -3,4 +3,4 @@ mod identity;
 pub mod patchwork;
 
 pub use identity::OwnedIdentity;
-pub use patchwork::{from_patchwork_config, from_patchwork_local};
+pub use patchwork::{from_patchwork_local, read_patchwork_config, write_patchwork_config};
