@@ -28,3 +28,4 @@ name = "ssb-cli"
 
 [dev-dependencies]
 structopt = "0.3.9"
+regex = "1.3.4"

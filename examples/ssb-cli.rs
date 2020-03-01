@@ -4,23 +4,26 @@ extern crate kuska_ssb;
 extern crate base64;
 extern crate crossbeam;
 extern crate structopt;
+extern crate regex;
 
 use std::fmt::Debug;
-use structopt::StructOpt;
 
 use async_std::io::{Read, Write};
-use async_std::net::TcpStream;
+use async_std::net::{UdpSocket,TcpStream};
 
 use kuska_handshake::async_std::{handshake_client, BoxStream};
 use kuska_ssb::api::{
     ApiHelper, CreateHistoryStreamArgs, CreateStreamArgs, LatestUserMessage, WhoAmI,
 };
-use kuska_ssb::crypto::ToSodiumObject;
 use kuska_ssb::discovery::ssb_net_id;
 use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
 use kuska_ssb::keystore::from_patchwork_local;
 use kuska_ssb::keystore::OwnedIdentity;
 use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStream};
+
+use sodiumoxide::crypto::sign::ed25519;
+use regex::Regex;
+use structopt::StructOpt;
 
 type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -30,7 +33,7 @@ struct Opt {
     /// Connect to server
     // format is: server:port:<server_id>
     #[structopt(short, long)]
-    connect: String,
+    connect: Option<String>,
 }
 
 pub fn whoami_res_parse(body: &[u8]) -> AnyResult<WhoAmI> {
@@ -134,15 +137,32 @@ async fn main() -> AnyResult<()> {
 
     let OwnedIdentity { pk, sk, id } = from_patchwork_local().await.expect("read local secret");
     println!("connecting with identity {}", id);
-
+    
     let opt = Opt::from_args();
-    let connect: Vec<_> = opt.connect.split(":").collect();
-    if connect.len() != 3 {
-        panic!("connection string should be server:port:id");
-    }
-    let server_pk = connect[2][1..].to_ed25519_pk()?;
+    let (ip,port,server_pk) = if let Some(connect) = opt.connect {
+        let connect: Vec<_> = connect.split(":").collect();
+        if connect.len() != 3 {
+            panic!("connection string should be server:port:id");
+        }
+        (connect[0].to_string(),connect[1].to_string(),connect[2].to_string())
+    } else {
+        println!("Waiting server broadcast...");
+        
+        let socket = UdpSocket::bind("0.0.0.0:8008").await?;
+        socket.set_broadcast(true)?;
+        let mut buf = [0; 128];
+        let (amt, _) = socket.recv_from(&mut buf).await.unwrap();
 
-    let mut socket = TcpStream::connect(format!("{}:{}", connect[0], connect[1])).await?;
+        let msg =  String::from_utf8(buf[..amt].to_vec())?;
+
+        println!("got broadcasted {}",msg);
+        let broadcast_regexp = r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=]+)";
+        let captures = Regex::new(broadcast_regexp).unwrap().captures(&msg).unwrap();
+        (captures[1].to_string(),captures[2].to_string(),captures[3].to_string())
+    };
+
+    let server_pk = ed25519::PublicKey::from_slice(&base64::decode(&server_pk)?).expect("bad public key");
+    let mut socket = TcpStream::connect(format!("{}:{}", ip, port)).await?;
 
     let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), server_pk).await?;
 
