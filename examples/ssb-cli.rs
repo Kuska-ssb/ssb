@@ -156,13 +156,17 @@ async fn main() -> AnyResult<()> {
         let msg =  String::from_utf8(buf[..amt].to_vec())?;
 
         println!("got broadcasted {}",msg);
-        let broadcast_regexp = r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=]+)";
+        let broadcast_regexp = r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=/]+)";
         let captures = Regex::new(broadcast_regexp).unwrap().captures(&msg).unwrap();
         (captures[1].to_string(),captures[2].to_string(),captures[3].to_string())
     };
 
     let server_pk = ed25519::PublicKey::from_slice(&base64::decode(&server_pk)?).expect("bad public key");
-    let mut socket = TcpStream::connect(format!("{}:{}", ip, port)).await?;
+    let server_ipport = format!("{}:{}", ip, port);
+
+    println!("server_ip_port={}",server_ipport);
+
+    let mut socket = TcpStream::connect(server_ipport).await?;
 
     let handshake = handshake_client(&mut socket, ssb_net_id(), pk, sk.clone(), server_pk).await?;
 

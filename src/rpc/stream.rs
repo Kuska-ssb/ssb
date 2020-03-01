@@ -2,6 +2,7 @@ use super::error::{Error, Result};
 
 use async_std::io;
 use async_std::prelude::*;
+use log::trace;
 
 use kuska_handshake::async_std::{BoxStreamRead, BoxStreamWrite};
 
@@ -146,6 +147,8 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
 
         let mut body_raw: Vec<u8> = vec![0; rpc_header.body_len as usize];
         self.box_reader.read_exact(&mut body_raw[..]).await?;
+
+        trace!("got {}",String::from_utf8_lossy(&body_raw[..]));
 
         if rpc_header.req_no > 0 {
             let rpc_body = serde_json::from_slice(&body_raw)?;
