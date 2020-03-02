@@ -43,6 +43,8 @@ pub enum RpcType {
     Async,
     #[serde(rename = "source")]
     Source,
+    #[serde(rename = "duplex")]
+    Duplex,
 }
 
 #[derive(Debug, PartialEq)]
