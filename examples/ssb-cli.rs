@@ -3,13 +3,13 @@ extern crate kuska_ssb;
 
 extern crate base64;
 extern crate crossbeam;
-extern crate structopt;
 extern crate regex;
+extern crate structopt;
 
 use std::fmt::Debug;
 
 use async_std::io::{Read, Write};
-use async_std::net::{UdpSocket,TcpStream};
+use async_std::net::{TcpStream, UdpSocket};
 
 use kuska_handshake::async_std::{handshake_client, BoxStream};
 use kuska_ssb::api::{
@@ -21,8 +21,8 @@ use kuska_ssb::keystore::from_patchwork_local;
 use kuska_ssb::keystore::OwnedIdentity;
 use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStream};
 
-use sodiumoxide::crypto::sign::ed25519;
 use regex::Regex;
+use sodiumoxide::crypto::sign::ed25519;
 use structopt::StructOpt;
 
 type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -84,7 +84,7 @@ where
         let (id, msg) = client.rpc().recv().await?;
         if id == req_no {
             match msg {
-                RecvMsg::BodyResponse(body) => {
+                RecvMsg::RpcResponse(_type, body) => {
                     return f(&body).map_err(|err| err.into());
                 }
                 RecvMsg::ErrorResponse(message) => {
@@ -113,7 +113,7 @@ where
         let (id, msg) = client.rpc().recv().await?;
         if id == req_no {
             match msg {
-                RecvMsg::BodyResponse(body) => {
+                RecvMsg::RpcResponse(_type, body) => {
                     let display = f(&body)?;
                     println!("{:?}", display);
                 }
@@ -137,34 +137,47 @@ async fn main() -> AnyResult<()> {
 
     let OwnedIdentity { pk, sk, id } = from_patchwork_local().await.expect("read local secret");
     println!("connecting with identity {}", id);
-    
+
     let opt = Opt::from_args();
-    let (ip,port,server_pk) = if let Some(connect) = opt.connect {
+    let (ip, port, server_pk) = if let Some(connect) = opt.connect {
         let connect: Vec<_> = connect.split(":").collect();
         if connect.len() != 3 {
             panic!("connection string should be server:port:id");
         }
-        (connect[0].to_string(),connect[1].to_string(),connect[2].to_string())
+        (
+            connect[0].to_string(),
+            connect[1].to_string(),
+            connect[2].to_string(),
+        )
     } else {
         println!("Waiting server broadcast...");
-        
+
         let socket = UdpSocket::bind("0.0.0.0:8008").await?;
         socket.set_broadcast(true)?;
         let mut buf = [0; 128];
         let (amt, _) = socket.recv_from(&mut buf).await.unwrap();
 
-        let msg =  String::from_utf8(buf[..amt].to_vec())?;
+        let msg = String::from_utf8(buf[..amt].to_vec())?;
 
-        println!("got broadcasted {}",msg);
-        let broadcast_regexp = r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=/]+)";
-        let captures = Regex::new(broadcast_regexp).unwrap().captures(&msg).unwrap();
-        (captures[1].to_string(),captures[2].to_string(),captures[3].to_string())
+        println!("got broadcasted {}", msg);
+        let broadcast_regexp =
+            r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=/]+)";
+        let captures = Regex::new(broadcast_regexp)
+            .unwrap()
+            .captures(&msg)
+            .unwrap();
+        (
+            captures[1].to_string(),
+            captures[2].to_string(),
+            captures[3].to_string(),
+        )
     };
 
-    let server_pk = ed25519::PublicKey::from_slice(&base64::decode(&server_pk)?).expect("bad public key");
+    let server_pk =
+        ed25519::PublicKey::from_slice(&base64::decode(&server_pk)?).expect("bad public key");
     let server_ipport = format!("{}:{}", ip, port);
 
-    println!("server_ip_port={}",server_ipport);
+    println!("server_ip_port={}", server_ipport);
 
     let mut socket = TcpStream::connect(server_ipport).await?;
 
