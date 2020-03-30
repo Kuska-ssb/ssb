@@ -2,7 +2,7 @@ use super::error::{Error, Result};
 
 use async_std::io;
 use async_std::prelude::*;
-use log::trace;
+use log::debug;
 
 use kuska_handshake::async_std::{BoxStreamRead, BoxStreamWrite};
 
@@ -59,6 +59,7 @@ pub struct Header {
 #[derive(Serialize, Deserialize)]
 struct ErrorMessage<'a> {
     name: &'a str,
+    stack: &'a str,
     message: &'a str,
 }
 
@@ -127,10 +128,11 @@ pub struct RpcStream<R: io::Read + Unpin, W: io::Write + Unpin> {
 }
 
 pub enum RecvMsg {
-    Request(Body),
+    RpcRequest(Body),
+    RpcResponse(BodyType, Vec<u8>),
+    OtherRequest(BodyType, Vec<u8>),
     ErrorResponse(String),
     CancelStreamRespose(),
-    BodyResponse(Vec<u8>),
 }
 
 impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
@@ -150,11 +152,20 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
         let mut body_raw: Vec<u8> = vec![0; rpc_header.body_len as usize];
         self.box_reader.read_exact(&mut body_raw[..]).await?;
 
-        trace!("got {}",String::from_utf8_lossy(&body_raw[..]));
+        debug!(
+            "rpc-recv {:?} '{}'",
+            rpc_header,
+            String::from_utf8_lossy(&body_raw[..])
+        );
 
         if rpc_header.req_no > 0 {
-            let rpc_body = serde_json::from_slice(&body_raw)?;
-            Ok((rpc_header.req_no, RecvMsg::Request(rpc_body)))
+            match serde_json::from_slice(&body_raw) {
+                Ok(rpc_body) => Ok((rpc_header.req_no, RecvMsg::RpcRequest(rpc_body))),
+                Err(_) => Ok((
+                    rpc_header.req_no,
+                    RecvMsg::OtherRequest(rpc_header.body_type, body_raw),
+                )),
+            }
         } else if rpc_header.is_end_or_error {
             if rpc_header.is_stream {
                 Ok((-rpc_header.req_no, RecvMsg::CancelStreamRespose()))
@@ -166,7 +177,10 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
                 ))
             }
         } else {
-            Ok((-rpc_header.req_no, RecvMsg::BodyResponse(body_raw)))
+            Ok((
+                -rpc_header.req_no,
+                RecvMsg::RpcResponse(rpc_header.body_type, body_raw),
+            ))
         }
     }
 
@@ -190,10 +204,13 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             is_end_or_error: false,
             body_type: BodyType::JSON,
             body_len: body_str.as_bytes().len() as u32,
-        }
-        .to_array();
+        };
 
-        self.box_writer.write_all(&rpc_header[..]).await?;
+        debug!("rpc-send {:?} '{}'", rpc_header, body_str);
+
+        self.box_writer
+            .write_all(&rpc_header.to_array()[..])
+            .await?;
         self.box_writer.write_all(body_str.as_bytes()).await?;
         self.box_writer.flush().await?;
 
@@ -213,32 +230,53 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             is_end_or_error: false,
             body_type,
             body_len: body.len() as u32,
-        }
-        .to_array();
+        };
 
-        self.box_writer.write_all(&rpc_header[..]).await?;
+        debug!(
+            "rpc-send {:?} '{}'",
+            rpc_header,
+            String::from_utf8_lossy(body)
+        );
+
+        self.box_writer
+            .write_all(&rpc_header.to_array()[..])
+            .await?;
         self.box_writer.write_all(body).await?;
         self.box_writer.flush().await?;
 
         Ok(())
     }
 
-    pub async fn send_error(&mut self, req_no: RequestNo, message: &str) -> Result<()> {
+    pub async fn send_error(
+        &mut self,
+        req_no: RequestNo,
+        rpc_type: RpcType,
+        message: &str,
+    ) -> Result<()> {
         let body_bytes = serde_json::to_string(&ErrorMessage {
             name: "Error",
+            stack: "",
             message,
         })?;
 
+        let is_stream = match rpc_type {
+            RpcType::Async => false,
+            _ => true,
+        };
+
         let rpc_header = Header {
             req_no: -req_no,
-            is_stream: false,
+            is_stream,
             is_end_or_error: true,
             body_type: BodyType::UTF8,
             body_len: body_bytes.as_bytes().len() as u32,
-        }
-        .to_array();
+        };
 
-        self.box_writer.write_all(&rpc_header[..]).await?;
+        debug!("rpc-send {:?} '{}'", rpc_header, body_bytes);
+
+        self.box_writer
+            .write_all(&rpc_header.to_array()[..])
+            .await?;
         self.box_writer.write_all(body_bytes.as_bytes()).await?;
         self.box_writer.flush().await?;
 
@@ -254,10 +292,17 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             is_end_or_error: true,
             body_type: BodyType::JSON,
             body_len: body_bytes.len() as u32,
-        }
-        .to_array();
+        };
 
-        self.box_writer.write_all(&rpc_header[..]).await?;
+        debug!(
+            "rpc-send {:?} '{}'",
+            rpc_header,
+            String::from_utf8_lossy(body_bytes)
+        );
+
+        self.box_writer
+            .write_all(&rpc_header.to_array()[..])
+            .await?;
         self.box_writer.write_all(&body_bytes[..]).await?;
         self.box_writer.flush().await?;
         Ok(())

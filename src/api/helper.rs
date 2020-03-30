@@ -59,7 +59,7 @@ pub struct CreateStreamArgs<K> {
 
     /// limit (number, default: -1): limit the number of results collected by this stream. This number represents a maximum number of results and may not be reached if you get to the end of the data first. A value of -1 means there is no limit. When reverse=true the highest keys will be returned instead of the lowest keys.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
 
     /// fillCache (boolean, default: false): wheather LevelDB's LRU-cache should be filled with data read.
     #[serde(rename = "fillCache")]
@@ -143,7 +143,7 @@ impl<K> CreateStreamArgs<K> {
             ..self
         }
     }
-    pub fn limit(self: Self, limit: u64) -> Self {
+    pub fn limit(self: Self, limit: i64) -> Self {
         Self {
             limit: Some(limit),
             ..self
@@ -173,7 +173,7 @@ pub struct CreateHistoryStreamArgs {
 
     /// limit (number, default: -1): limit the number of results collected by this stream. This number represents a maximum number of results and may not be reached if you get to the end of the data first. A value of -1 means there is no limit. When reverse=true the highest keys will be returned instead of the lowest keys.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
 }
 
 impl CreateHistoryStreamArgs {
@@ -206,7 +206,7 @@ impl CreateHistoryStreamArgs {
             ..self
         }
     }
-    pub fn limit(self: Self, limit: u64) -> Self {
+    pub fn limit(self: Self, limit: i64) -> Self {
         Self {
             limit: Some(limit),
             ..self
@@ -317,7 +317,7 @@ impl<R: Read + Unpin, W: Write + Unpin> ApiHelper<R, W> {
     }
     pub async fn feed_res_send(&mut self, req_no: RequestNo, feed: &str) -> Result<()> {
         self.rpc
-            .send_response(req_no, RpcType::Async, BodyType::JSON, feed.as_bytes())
+            .send_response(req_no, RpcType::Source, BodyType::JSON, feed.as_bytes())
             .await?;
         Ok(())
     }

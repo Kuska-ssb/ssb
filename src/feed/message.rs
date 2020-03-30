@@ -70,6 +70,7 @@ impl Message {
                 Value::Number(serde_json::Number::from(prev.sequence() + 1)),
             );
         } else {
+            value.insert(MSG_PREVIOUS.to_string(), Value::Null);
             value.insert(
                 MSG_SEQUENCE.to_string(),
                 Value::Number(serde_json::Number::from(1)),
