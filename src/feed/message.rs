@@ -52,7 +52,7 @@ impl AsRef<[u8]> for MessageId {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Message {
     pub value: serde_json::Value,
 }
