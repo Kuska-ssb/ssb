@@ -21,7 +21,7 @@ pub enum BodyType {
     JSON,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct Body {
     pub name: Vec<String>,
     #[serde(rename = "type")]
@@ -127,6 +127,7 @@ pub struct RpcStream<R: io::Read + Unpin, W: io::Write + Unpin> {
     req_no: RequestNo,
 }
 
+#[derive(Debug)]
 pub enum RecvMsg {
     RpcRequest(Body),
     RpcResponse(BodyType, Vec<u8>),
