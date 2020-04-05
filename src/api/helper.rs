@@ -1,5 +1,5 @@
 use crate::feed::Message;
-use crate::rpc::{Body,BodyType, RequestNo, RpcStream, RpcType};
+use crate::rpc::{Body, BodyType, RequestNo, RpcStream, RpcType};
 use async_std::io::{Read, Write};
 use serde_json;
 
@@ -245,7 +245,7 @@ impl ApiMethod {
             _ => None,
         }
     }
-    pub fn from_rpc_body(body : &Body) -> Option<Self> {
+    pub fn from_rpc_body(body: &Body) -> Option<Self> {
         let selector = body.name.iter().map(|v| v.as_str()).collect::<Vec<_>>();
         Self::from_selector(&selector)
     }
