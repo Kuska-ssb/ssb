@@ -21,7 +21,7 @@ pub enum BodyType {
     JSON,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Body {
     pub name: Vec<String>,
     #[serde(rename = "type")]
