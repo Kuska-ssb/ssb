@@ -2,7 +2,7 @@ use super::error::{Error, Result};
 
 use async_std::io;
 use async_std::prelude::*;
-use log::debug;
+use log::{trace, warn};
 
 use kuska_handshake::async_std::{BoxStreamRead, BoxStreamWrite};
 
@@ -72,11 +72,15 @@ impl Header {
         let is_stream = (bytes[0] & RPC_HEADER_STREAM_FLAG) == RPC_HEADER_STREAM_FLAG;
         let is_end_or_error =
             (bytes[0] & RPC_HEADER_END_OR_ERROR_FLAG) == RPC_HEADER_END_OR_ERROR_FLAG;
-        let body_type = match bytes[0] & RPC_HEADER_BODY_TYPE_MASK {
+        let body_type_value = bytes[0] & RPC_HEADER_BODY_TYPE_MASK;
+        let body_type = match body_type_value {
             0 => BodyType::Binary,
             1 => BodyType::UTF8,
             2 => BodyType::JSON,
-            _ => return Err(Error::InvalidBodyType),
+            _ => {
+                warn!("rare message: {}", String::from_utf8_lossy(bytes));
+                return Err(Error::InvalidBodyType(body_type_value));
+            }
         };
 
         let mut body_len_buff = [0u8; 4];
@@ -153,8 +157,7 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
         let mut body_raw: Vec<u8> = vec![0; rpc_header.body_len as usize];
         self.box_reader.read_exact(&mut body_raw[..]).await?;
 
-        debug!(
-            "rpc-recv {:?} '{}'",
+        trace!(target: "ssb-rpc", "recv {:?} '{}'",
             rpc_header,
             String::from_utf8_lossy(&body_raw[..])
         );
@@ -207,7 +210,7 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             body_len: body_str.as_bytes().len() as u32,
         };
 
-        debug!("rpc-send {:?} '{}'", rpc_header, body_str);
+        trace!(target: "ssb-rpc", "send {:?} '{}'", rpc_header, body_str);
 
         self.box_writer
             .write_all(&rpc_header.to_array()[..])
@@ -233,8 +236,8 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             body_len: body.len() as u32,
         };
 
-        debug!(
-            "rpc-send {:?} '{}'",
+        trace!(target: "ssb-rpc",
+            "send {:?} '{}'",
             rpc_header,
             String::from_utf8_lossy(body)
         );
@@ -273,7 +276,7 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             body_len: body_bytes.as_bytes().len() as u32,
         };
 
-        debug!("rpc-send {:?} '{}'", rpc_header, body_bytes);
+        trace!(target: "ssb-rpc", "send {:?} '{}'", rpc_header, body_bytes);
 
         self.box_writer
             .write_all(&rpc_header.to_array()[..])
@@ -295,8 +298,8 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
             body_len: body_bytes.len() as u32,
         };
 
-        debug!(
-            "rpc-send {:?} '{}'",
+        trace!(target: "ssb-rpc",
+            "send {:?} '{}'",
             rpc_header,
             String::from_utf8_lossy(body_bytes)
         );

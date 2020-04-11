@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
     HeaderSizeTooSmall,
-    InvalidBodyType,
+    InvalidBodyType(u8),
     Io(async_std::io::Error),
     Json(serde_json::Error),
 }

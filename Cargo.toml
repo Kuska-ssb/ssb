@@ -1,6 +1,6 @@
 [package]
 name = "kuska-ssb"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Dhole <dhole@riseup.net>", "Adria Massanet <adria@codecontext.io>"]
 edition = "2018"
 

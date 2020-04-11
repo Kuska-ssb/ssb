@@ -13,7 +13,8 @@ use async_std::net::{TcpStream, UdpSocket};
 
 use kuska_handshake::async_std::{handshake_client, BoxStream};
 use kuska_ssb::api::{
-    ApiHelper, CreateHistoryStreamArgs, CreateStreamArgs, LatestUserMessage, WhoAmI,
+    dto::{CreateHistoryStreamIn, CreateStreamIn, LatestOut, WhoAmIOut},
+    ApiHelper,
 };
 use kuska_ssb::discovery::ssb_net_id;
 use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
@@ -25,7 +26,7 @@ use regex::Regex;
 use sodiumoxide::crypto::sign::ed25519;
 use structopt::StructOpt;
 
-type AnyResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type SolarResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "example", about = "An example of StructOpt usage.")]
@@ -36,16 +37,16 @@ struct Opt {
     connect: Option<String>,
 }
 
-pub fn whoami_res_parse(body: &[u8]) -> AnyResult<WhoAmI> {
+pub fn whoami_res_parse(body: &[u8]) -> SolarResult<WhoAmIOut> {
     Ok(serde_json::from_slice(body)?)
 }
-pub fn message_res_parse(body: &[u8]) -> AnyResult<Message> {
+pub fn message_res_parse(body: &[u8]) -> SolarResult<Message> {
     Ok(Message::from_slice(body)?)
 }
-pub fn feed_res_parse(body: &[u8]) -> AnyResult<Feed> {
+pub fn feed_res_parse(body: &[u8]) -> SolarResult<Feed> {
     Ok(Feed::from_slice(&body)?)
 }
-pub fn latest_res_parse(body: &[u8]) -> AnyResult<LatestUserMessage> {
+pub fn latest_res_parse(body: &[u8]) -> SolarResult<LatestOut> {
     Ok(serde_json::from_slice(body)?)
 }
 
@@ -73,11 +74,11 @@ async fn get_async<'a, R, W, T, F>(
     client: &mut ApiHelper<R, W>,
     req_no: RequestNo,
     f: F,
-) -> AnyResult<T>
+) -> SolarResult<T>
 where
     R: Read + Unpin,
     W: Write + Unpin,
-    F: Fn(&[u8]) -> AnyResult<T>,
+    F: Fn(&[u8]) -> SolarResult<T>,
     T: Debug,
 {
     loop {
@@ -102,11 +103,11 @@ async fn print_source_until_eof<'a, R, W, T, F>(
     client: &mut ApiHelper<R, W>,
     req_no: RequestNo,
     f: F,
-) -> AnyResult<()>
+) -> SolarResult<()>
 where
     R: Read + Unpin,
     W: Write + Unpin,
-    F: Fn(&[u8]) -> AnyResult<T>,
+    F: Fn(&[u8]) -> SolarResult<T>,
     T: Debug + serde::Deserialize<'a>,
 {
     loop {
@@ -131,7 +132,7 @@ where
 }
 
 #[async_std::main]
-async fn main() -> AnyResult<()> {
+async fn main() -> SolarResult<()> {
     env_logger::init();
     log::set_max_level(log::LevelFilter::max());
 
@@ -226,17 +227,17 @@ async fn main() -> AnyResult<()> {
             ("user", 2) => {
                 let user_id = if args[1] == "me" { &whoami } else { &args[1] };
 
-                let args = CreateHistoryStreamArgs::new(user_id.clone());
+                let args = CreateHistoryStreamIn::new(user_id.clone());
                 let req_id = client.create_history_stream_req_send(&args).await?;
                 print_source_until_eof(&mut client, req_id, feed_res_parse).await?;
             }
             ("feed", 1) => {
-                let args = CreateStreamArgs::default();
-                let req_id = client.send_create_feed_stream(&args).await?;
+                let args = CreateStreamIn::default();
+                let req_id = client.create_feed_stream_req_send(&args).await?;
                 print_source_until_eof(&mut client, req_id, feed_res_parse).await?;
             }
             ("latest", 1) => {
-                let req_id = client.send_latest().await?;
+                let req_id = client.latest_req_send().await?;
                 print_source_until_eof(&mut client, req_id, latest_res_parse).await?;
             }
             ("private", 2) => {
@@ -253,7 +254,7 @@ async fn main() -> AnyResult<()> {
                     return Ok("".to_string());
                 };
 
-                let args = CreateHistoryStreamArgs::new(user_id.clone());
+                let args = CreateHistoryStreamIn::new(user_id.clone());
                 let req_id = client.create_history_stream_req_send(&args).await?;
 
                 print_source_until_eof(&mut client, req_id, show_private).await?;
