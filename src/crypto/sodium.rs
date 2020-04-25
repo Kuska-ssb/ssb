@@ -10,6 +10,7 @@ pub const SHA256_SUFFIX: &str = ".sha256";
 
 pub trait ToSodiumObject {
     fn to_ed25519_pk(&self) -> Result<ed25519::PublicKey>;
+    fn to_ed25519_pk_no_suffix(&self) -> Result<ed25519::PublicKey>;
     fn to_ed25519_sk(&self) -> Result<ed25519::SecretKey>;
     fn to_ed25519_sk_no_suffix(&self) -> Result<ed25519::SecretKey>;
     fn to_ed25519_signature(&self) -> Result<ed25519::Signature>;
@@ -40,6 +41,12 @@ impl ToSodiumObject for str {
 
         let key_len = self.len() - CURVE_ED25519_SUFFIX.len();
         let bytes = base64::decode(&self[..key_len])?;
+
+        ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)
+    }
+    fn to_ed25519_pk_no_suffix(self: &str) -> Result<ed25519::PublicKey> {
+
+        let bytes = base64::decode(&self)?;
 
         ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)
     }

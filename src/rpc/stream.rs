@@ -78,7 +78,7 @@ impl Header {
             1 => BodyType::UTF8,
             2 => BodyType::JSON,
             _ => {
-                warn!("rare message: {}", String::from_utf8_lossy(bytes));
+                warn!(target: "ssb", "rare message: {}", String::from_utf8_lossy(bytes));
                 return Err(Error::InvalidBodyType(body_type_value));
             }
         };

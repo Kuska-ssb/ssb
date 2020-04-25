@@ -92,11 +92,11 @@ pub enum Mentions {
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
-pub enum FeedTypedContent {
+pub enum TypedMessage {
     #[serde(rename = "pub")]
     Pub { address: Option<PubAddress> },
     #[serde(rename = "post")]
-    Post,
+    Post { post: Post },
     #[serde(rename = "contact")]
     Contact {
         contact: Option<SsbId>,
