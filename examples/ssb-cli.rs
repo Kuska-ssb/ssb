@@ -20,7 +20,7 @@ use kuska_ssb::discovery::ssb_net_id;
 use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
 use kuska_ssb::keystore::from_patchwork_local;
 use kuska_ssb::keystore::OwnedIdentity;
-use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStream};
+use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcStreamReader, RpcStreamWriter};
 
 use regex::Regex;
 use sodiumoxide::crypto::sign::ed25519;
@@ -71,7 +71,8 @@ impl std::fmt::Display for AppError {
 }
 
 async fn get_async<'a, R, W, T, F>(
-    client: &mut ApiHelper<R, W>,
+    rpc_reader : &mut RpcStreamReader<R>,
+    client: &mut ApiHelper<W>,
     req_no: RequestNo,
     f: F,
 ) -> SolarResult<T>
@@ -82,7 +83,7 @@ where
     T: Debug,
 {
     loop {
-        let (id, msg) = client.rpc().recv().await?;
+        let (id, msg) = rpc_reader.recv().await?;
         if id == req_no {
             match msg {
                 RecvMsg::RpcResponse(_type, body) => {
@@ -100,7 +101,8 @@ where
 }
 
 async fn print_source_until_eof<'a, R, W, T, F>(
-    client: &mut ApiHelper<R, W>,
+    rpc_reader : &mut RpcStreamReader<R>,
+    client: &mut ApiHelper<W>,
     req_no: RequestNo,
     f: F,
 ) -> SolarResult<()>
@@ -111,7 +113,7 @@ where
     T: Debug + serde::Deserialize<'a>,
 {
     loop {
-        let (id, msg) = client.rpc().recv().await?;
+        let (id, msg) = rpc_reader.recv().await?;
         if id == req_no {
             match msg {
                 RecvMsg::RpcResponse(_type, body) => {
@@ -189,10 +191,11 @@ async fn main() -> SolarResult<()> {
     let (box_stream_read, box_stream_write) =
         BoxStream::from_handshake(&socket, &socket, handshake, 0x8000).split_read_write();
 
-    let mut client = ApiHelper::new(RpcStream::new(box_stream_read, box_stream_write));
+    let mut rpc_reader = RpcStreamReader::new(box_stream_read);
+    let mut client = ApiHelper::new(RpcStreamWriter::new(box_stream_write));
 
     let req_id = client.whoami_req_send().await?;
-    let whoami = get_async(&mut client, req_id, whoami_res_parse).await?.id;
+    let whoami = get_async(&mut rpc_reader, &mut client, req_id, whoami_res_parse).await?.id;
 
     println!("😊 server says hello to {}", whoami);
 
@@ -211,7 +214,7 @@ async fn main() -> SolarResult<()> {
             }
             ("whoami", 1) => {
                 let req_id = client.whoami_req_send().await?;
-                let whoami = get_async(&mut client, req_id, whoami_res_parse).await?.id;
+                let whoami = get_async(&mut rpc_reader, &mut client, req_id, whoami_res_parse).await?.id;
                 println!("{}", whoami);
             }
             ("get", 2) => {
@@ -221,7 +224,7 @@ async fn main() -> SolarResult<()> {
                     args[1].clone()
                 };
                 let req_id = client.get_req_send(&msg_id).await?;
-                let msg = get_async(&mut client, req_id, message_res_parse).await?;
+                let msg = get_async(&mut rpc_reader, &mut client, req_id, message_res_parse).await?;
                 println!("{:?}", msg);
             }
             ("user", 2) => {
@@ -229,16 +232,16 @@ async fn main() -> SolarResult<()> {
 
                 let args = CreateHistoryStreamIn::new(user_id.clone());
                 let req_id = client.create_history_stream_req_send(&args).await?;
-                print_source_until_eof(&mut client, req_id, feed_res_parse).await?;
+                print_source_until_eof(&mut rpc_reader, &mut client, req_id, feed_res_parse).await?;
             }
             ("feed", 1) => {
                 let args = CreateStreamIn::default();
                 let req_id = client.create_feed_stream_req_send(&args).await?;
-                print_source_until_eof(&mut client, req_id, feed_res_parse).await?;
+                print_source_until_eof(&mut rpc_reader, &mut client, req_id, feed_res_parse).await?;
             }
             ("latest", 1) => {
                 let req_id = client.latest_req_send().await?;
-                print_source_until_eof(&mut client, req_id, latest_res_parse).await?;
+                print_source_until_eof(&mut rpc_reader, &mut client, req_id, latest_res_parse).await?;
             }
             ("private", 2) => {
                 let user_id = if args[1] == "me" { &whoami } else { &args[1] };
@@ -257,7 +260,7 @@ async fn main() -> SolarResult<()> {
                 let args = CreateHistoryStreamIn::new(user_id.clone());
                 let req_id = client.create_history_stream_req_send(&args).await?;
 
-                print_source_until_eof(&mut client, req_id, show_private).await?;
+                print_source_until_eof(&mut rpc_reader, &mut client, req_id, show_private).await?;
             }
             _ => println!("unknown command {}", line_buffer),
         }

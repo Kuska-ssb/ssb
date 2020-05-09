@@ -34,7 +34,7 @@ impl CreateHistoryStreamIn {
             limit: None,
         }
     }
-    pub fn starting_seq(self: Self, seq: u64) -> Self {
+    pub fn after_seq(self: Self, seq: u64) -> Self {
         Self {
             seq: Some(seq),
             ..self

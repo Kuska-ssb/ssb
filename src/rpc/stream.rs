@@ -3,6 +3,8 @@ use super::error::{Error, Result};
 use async_std::io;
 use async_std::prelude::*;
 use log::{trace, warn};
+use std::pin::Pin;
+use std::task::{Context,Poll};
 
 use kuska_handshake::async_std::{BoxStreamRead, BoxStreamWrite};
 
@@ -125,8 +127,11 @@ impl Header {
     }
 }
 
-pub struct RpcStream<R: io::Read + Unpin, W: io::Write + Unpin> {
+pub struct RpcStreamReader<R: io::Read + Unpin> {
     box_reader: BoxStreamRead<R>,
+}
+
+pub struct RpcStreamWriter<W: io::Write + Unpin> {
     box_writer: BoxStreamWrite<W>,
     req_no: RequestNo,
 }
@@ -140,12 +145,10 @@ pub enum RecvMsg {
     CancelStreamRespose(),
 }
 
-impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
-    pub fn new(box_reader: BoxStreamRead<R>, box_writer: BoxStreamWrite<W>) -> RpcStream<R, W> {
-        RpcStream {
-            box_reader,
-            box_writer,
-            req_no: 0,
+impl<R: io::Read + Unpin> RpcStreamReader<R> {
+    pub fn new(box_reader: BoxStreamRead<R>) -> RpcStreamReader<R> {
+        RpcStreamReader {
+            box_reader
         }
     }
 
@@ -185,6 +188,22 @@ impl<R: io::Read + Unpin, W: io::Write + Unpin> RpcStream<R, W> {
                 -rpc_header.req_no,
                 RecvMsg::RpcResponse(rpc_header.body_type, body_raw),
             ))
+        }
+    }
+}
+/*
+impl<R: io::Read + Unpin> Stream for RpcStreamReader<R> {
+    type Item =  (RequestNo, RecvMsg);
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        futures::ready!(self.recv())
+    }
+}
+*/
+impl<W: io::Write + Unpin> RpcStreamWriter<W> {
+    pub fn new(box_writer: BoxStreamWrite<W>) -> RpcStreamWriter<W> {
+        RpcStreamWriter {
+            box_writer,
+            req_no: 0,
         }
     }
 

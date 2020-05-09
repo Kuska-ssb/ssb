@@ -1,7 +1,6 @@
 use crate::feed::Message;
-use crate::rpc::{Body, BodyType, RequestNo, RpcStream, RpcType};
-use async_std::io::{Read, Write};
-use serde_json;
+use crate::rpc::{Body, BodyType, RequestNo, RpcStreamWriter, RpcType};
+use async_std::io::Write;
 
 use super::dto;
 use super::error::Result;
@@ -51,16 +50,16 @@ impl ApiMethod {
     }
 }
 
-pub struct ApiHelper<R: Read + Unpin, W: Write + Unpin> {
-    rpc: RpcStream<R, W>,
+pub struct ApiHelper<W: Write + Unpin> {
+    rpc: RpcStreamWriter<W>,
 }
 
-impl<R: Read + Unpin, W: Write + Unpin> ApiHelper<R, W> {
-    pub fn new(rpc: RpcStream<R, W>) -> Self {
+impl<W: Write + Unpin> ApiHelper<W> {
+    pub fn new(rpc: RpcStreamWriter<W>) -> Self {
         Self { rpc }
     }
 
-    pub fn rpc(&mut self) -> &mut RpcStream<R, W> {
+    pub fn rpc(&mut self) -> &mut RpcStreamWriter<W> {
         &mut self.rpc
     }
 

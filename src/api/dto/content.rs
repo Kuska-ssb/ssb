@@ -96,7 +96,10 @@ pub enum TypedMessage {
     #[serde(rename = "pub")]
     Pub { address: Option<PubAddress> },
     #[serde(rename = "post")]
-    Post { post: Post },
+    Post {
+        text: String,
+        mentions: Option<Vec<Mention>>,
+    },
     #[serde(rename = "contact")]
     Contact {
         contact: Option<SsbId>,
