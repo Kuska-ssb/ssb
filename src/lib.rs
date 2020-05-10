@@ -1,4 +1,4 @@
-extern crate kuska_handshake;
+pub extern crate kuska_handshake as handshake;
 
 #[macro_use]
 extern crate serde;

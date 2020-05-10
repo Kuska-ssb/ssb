@@ -2,7 +2,9 @@
 pub enum Error {
     ParseInt(std::num::ParseIntError),
     InvalidInviteCode,
+    InvalidBroadcastMessage,
     CryptoFormat(crate::crypto::Error),
+    Io(std::io::Error),
 }
 
 impl From<crate::crypto::Error> for Error {
@@ -14,6 +16,12 @@ impl From<crate::crypto::Error> for Error {
 impl From<std::num::ParseIntError> for Error {
     fn from(err: std::num::ParseIntError) -> Self {
         Error::ParseInt(err)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::Io(err)
     }
 }
 

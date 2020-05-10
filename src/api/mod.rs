@@ -3,4 +3,4 @@ mod error;
 mod helper;
 
 pub use error::{Error, Result};
-pub use helper::{ApiHelper, ApiMethod};
+pub use helper::{ApiCaller, ApiMethod};

@@ -50,7 +50,6 @@ impl ToSodiumObject for str {
         ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)
     }
     fn to_ed25519_pk_no_suffix(self: &str) -> Result<ed25519::PublicKey> {
-
         let bytes = base64::decode(&self)?;
 
         ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)

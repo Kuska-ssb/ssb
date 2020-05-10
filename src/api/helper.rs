@@ -1,5 +1,5 @@
 use crate::feed::Message;
-use crate::rpc::{Body, BodyType, RequestNo, RpcStreamWriter, RpcType};
+use crate::rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter};
 use async_std::io::Write;
 
 use super::dto;
@@ -50,16 +50,16 @@ impl ApiMethod {
     }
 }
 
-pub struct ApiHelper<W: Write + Unpin> {
-    rpc: RpcStreamWriter<W>,
+pub struct ApiCaller<W: Write + Unpin> {
+    rpc: RpcWriter<W>,
 }
 
-impl<W: Write + Unpin> ApiHelper<W> {
-    pub fn new(rpc: RpcStreamWriter<W>) -> Self {
+impl<W: Write + Unpin> ApiCaller<W> {
+    pub fn new(rpc: RpcWriter<W>) -> Self {
         Self { rpc }
     }
 
-    pub fn rpc(&mut self) -> &mut RpcStreamWriter<W> {
+    pub fn rpc(&mut self) -> &mut RpcWriter<W> {
         &mut self.rpc
     }
 
