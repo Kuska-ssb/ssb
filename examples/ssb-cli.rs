@@ -7,6 +7,7 @@ extern crate regex;
 extern crate structopt;
 
 use std::fmt::Debug;
+use std::io::prelude::*;
 
 use async_std::io::Read;
 use async_std::net::{TcpStream, UdpSocket};
@@ -90,10 +91,8 @@ where
                 RecvMsg::ErrorResponse(message) => {
                     return std::result::Result::Err(Box::new(AppError::new(message)));
                 }
-                _ => unreachable!(),
+                _ => { }
             }
-        } else {
-            println!("discarded message {}", id);
         }
     }
 }
@@ -120,10 +119,8 @@ where
                     return std::result::Result::Err(Box::new(AppError::new(message)));
                 }
                 RecvMsg::CancelStreamRespose() => break,
-                _ => unreachable!(),
+                _ => { }
             }
-        } else {
-            println!("discarded message {}", id);
         }
     }
     Ok(())
@@ -191,20 +188,36 @@ async fn main() -> SolarResult<()> {
     let mut client = ApiCaller::new(RpcWriter::new(box_stream_write));
 
     let req_id = client.whoami_req_send().await?;
-    let whoami = get_async(&mut rpc_reader, req_id, whoami_res_parse)
-        .await?
-        .id;
+    let whoami = match get_async(&mut rpc_reader, req_id, whoami_res_parse).await {
+       Ok(res) => {
+    	  println!("😊 server says hello to {}", res.id);
+  	  id
+       }
+       Err(err) => {
+          if !err.to_string().contains("method:whoami is not in list of allowed methods") {
+          	println!("Cannot ask for whoami {}",err);
+	  }
+      	  id  
+       }
+    };
 
-    println!("😊 server says hello to {}", whoami);
 
-    let mut line_buffer = String::new();
-    while let Ok(_) = std::io::stdin().read_line(&mut line_buffer) {
+    loop {
+    	let mut line_buffer = String::new();
+        print!("> "); std::io::stdout().flush();
+        match std::io::stdin().read_line(&mut line_buffer) {
+	    Err(_) => break,
+            _ => { }
+        };
         let args: Vec<String> = line_buffer
             .replace("\n", "")
             .split_whitespace()
             .map(|arg| arg.to_string())
             .collect();
-
+       
+        if args.len() == 0 {
+	    continue;
+        }
         match (args[0].as_str(), args.len()) {
             ("exit", 1) => {
                 client.rpc().close().await?;
