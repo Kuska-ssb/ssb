@@ -4,6 +4,7 @@ pub extern crate kuska_handshake as handshake;
 extern crate serde;
 extern crate async_std;
 extern crate serde_json;
+extern crate thiserror;
 
 pub mod api;
 pub mod crypto;

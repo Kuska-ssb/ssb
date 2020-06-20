@@ -1,49 +1,35 @@
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Error, Debug)]
 pub enum Error {
-    Base64Decode(base64::DecodeError),
+    #[error("base64 decoding")]
+    Base64Decode(#[from] base64::DecodeError),
+    #[error("feed digest mismatch")]
     FeedDigestMismatch,
-    SystemTimeError(std::time::SystemTimeError),
+    #[error("time error")]
+    SystemTimeError(#[from] std::time::SystemTimeError),
+    #[error("invalid json")]
     InvalidJson,
+    #[error("invalid signature")]
     InvalidSignature,
+    #[error("failed to decipher")]
     FailedToDecipher,
+    #[error("cannot create key")]
     CannotCreateKey,
+    #[error("cannot read nonce")]
     CannotReadNonce,
+    #[error("crypto scalar mult failed")]
     CryptoScalarMultFailed,
+    #[error("empty plaintext")]
     EmptyPlaintext,
+    #[error("bad recipent")]
     BadRecipientCount,
+    #[error("invalid key from group")]
     CryptoKeyFromGrupFailed,
-    CryptoFormat(crate::crypto::Error),
-    Json(serde_json::Error),
+    #[error("invalid key format")]
+    CryptoFormat(#[from] crate::crypto::Error),
+    #[error("invalid json")]
+    Json(#[from] serde_json::Error),
 }
-
-impl From<base64::DecodeError> for Error {
-    fn from(err: base64::DecodeError) -> Self {
-        Error::Base64Decode(err)
-    }
-}
-impl From<crate::crypto::Error> for Error {
-    fn from(err: crate::crypto::Error) -> Self {
-        Error::CryptoFormat(err)
-    }
-}
-
-impl From<std::time::SystemTimeError> for Error {
-    fn from(err: std::time::SystemTimeError) -> Self {
-        Error::SystemTimeError(err)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Self {
-        Error::Json(err)
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;

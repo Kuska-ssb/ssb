@@ -1,35 +1,17 @@
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Error, Debug)]
 pub enum Error {
-    ParseInt(std::num::ParseIntError),
+    #[error("invalid integer")]
+    ParseInt(#[from] std::num::ParseIntError),
+    #[error("invalid invite code")]
     InvalidInviteCode,
+    #[error("invalid broadcast message")]
     InvalidBroadcastMessage,
-    CryptoFormat(crate::crypto::Error),
-    Io(std::io::Error),
+    #[error("invalid crypto format")]
+    CryptoFormat(#[from] crate::crypto::Error),
+    #[error("i/o")]
+    Io(#[from] std::io::Error),
 }
-
-impl From<crate::crypto::Error> for Error {
-    fn from(err: crate::crypto::Error) -> Self {
-        Error::CryptoFormat(err)
-    }
-}
-
-impl From<std::num::ParseIntError> for Error {
-    fn from(err: std::num::ParseIntError) -> Self {
-        Error::ParseInt(err)
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Self {
-        Error::Io(err)
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;

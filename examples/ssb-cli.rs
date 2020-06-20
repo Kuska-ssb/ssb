@@ -91,7 +91,7 @@ where
                 RecvMsg::ErrorResponse(message) => {
                     return std::result::Result::Err(Box::new(AppError::new(message)));
                 }
-                _ => { }
+                _ => {}
             }
         }
     }
@@ -119,7 +119,7 @@ where
                     return std::result::Result::Err(Box::new(AppError::new(message)));
                 }
                 RecvMsg::CancelStreamRespose() => break,
-                _ => { }
+                _ => {}
             }
         }
     }
@@ -189,34 +189,37 @@ async fn main() -> SolarResult<()> {
 
     let req_id = client.whoami_req_send().await?;
     let whoami = match get_async(&mut rpc_reader, req_id, whoami_res_parse).await {
-       Ok(res) => {
-    	  println!("😊 server says hello to {}", res.id);
-  	  id
-       }
-       Err(err) => {
-          if !err.to_string().contains("method:whoami is not in list of allowed methods") {
-          	println!("Cannot ask for whoami {}",err);
-	  }
-      	  id  
-       }
+        Ok(res) => {
+            println!("😊 server says hello to {}", res.id);
+            id
+        }
+        Err(err) => {
+            if !err
+                .to_string()
+                .contains("method:whoami is not in list of allowed methods")
+            {
+                println!("Cannot ask for whoami {}", err);
+            }
+            id
+        }
     };
 
-
     loop {
-    	let mut line_buffer = String::new();
-        print!("> "); std::io::stdout().flush();
+        let mut line_buffer = String::new();
+        print!("> ");
+        let _ = std::io::stdout().flush();
         match std::io::stdin().read_line(&mut line_buffer) {
-	    Err(_) => break,
-            _ => { }
+            Err(_) => break,
+            _ => {}
         };
         let args: Vec<String> = line_buffer
             .replace("\n", "")
             .split_whitespace()
             .map(|arg| arg.to_string())
             .collect();
-       
+
         if args.len() == 0 {
-	    continue;
+            continue;
         }
         match (args[0].as_str(), args.len()) {
             ("exit", 1) => {
