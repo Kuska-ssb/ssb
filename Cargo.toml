@@ -13,15 +13,11 @@ sodiumoxide = { git = "https://github.com/Dhole/sodiumoxidez", branch = "extra" 
 base64 = "0.11.0"
 hex = "0.4.0"
 async-std = { version = "1.5.0", features=["unstable","attributes"] }
-crossbeam = "0.7.3"
 log = "0.4.8"
-env_logger = "0.7.1"
 serde = { version = "1.0.104", features = ["derive"] }
 serde_json = { version = "1.0.48", features=["preserve_order","arbitrary_precision"] }
 dirs = "2.0"
 futures = "0.3.4"
-lazy_static = "1.4.0"
-rand = "0.7.3"
 get_if_addrs = "0.5.3"
 regex = "1.3.7"
 once_cell = "1.3.1"
@@ -32,5 +28,8 @@ thiserror = "1.0.20"
 name = "ssb-cli"
 
 [dev-dependencies]
+crossbeam = "0.7.3"
+env_logger = "0.7.1"
 structopt = "0.3.9"
 regex = "1.3.4"
+rand = "0.7.3"

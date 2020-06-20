@@ -27,7 +27,7 @@ use regex::Regex;
 use sodiumoxide::crypto::sign::ed25519;
 use structopt::StructOpt;
 
-type SolarResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "example", about = "An example of StructOpt usage.")]
@@ -38,16 +38,16 @@ struct Opt {
     connect: Option<String>,
 }
 
-pub fn whoami_res_parse(body: &[u8]) -> SolarResult<WhoAmIOut> {
+pub fn whoami_res_parse(body: &[u8]) -> Result<WhoAmIOut> {
     Ok(serde_json::from_slice(body)?)
 }
-pub fn message_res_parse(body: &[u8]) -> SolarResult<Message> {
+pub fn message_res_parse(body: &[u8]) -> Result<Message> {
     Ok(Message::from_slice(body)?)
 }
-pub fn feed_res_parse(body: &[u8]) -> SolarResult<Feed> {
+pub fn feed_res_parse(body: &[u8]) -> Result<Feed> {
     Ok(Feed::from_slice(&body)?)
 }
-pub fn latest_res_parse(body: &[u8]) -> SolarResult<LatestOut> {
+pub fn latest_res_parse(body: &[u8]) -> Result<LatestOut> {
     Ok(serde_json::from_slice(body)?)
 }
 
@@ -71,14 +71,10 @@ impl std::fmt::Display for AppError {
     }
 }
 
-async fn get_async<'a, R, T, F>(
-    rpc_reader: &mut RpcReader<R>,
-    req_no: RequestNo,
-    f: F,
-) -> SolarResult<T>
+async fn get_async<'a, R, T, F>(rpc_reader: &mut RpcReader<R>, req_no: RequestNo, f: F) -> Result<T>
 where
     R: Read + Unpin,
-    F: Fn(&[u8]) -> SolarResult<T>,
+    F: Fn(&[u8]) -> Result<T>,
     T: Debug,
 {
     loop {
@@ -101,10 +97,10 @@ async fn print_source_until_eof<'a, R, T, F>(
     rpc_reader: &mut RpcReader<R>,
     req_no: RequestNo,
     f: F,
-) -> SolarResult<()>
+) -> Result<()>
 where
     R: Read + Unpin,
-    F: Fn(&[u8]) -> SolarResult<T>,
+    F: Fn(&[u8]) -> Result<T>,
     T: Debug + serde::Deserialize<'a>,
 {
     loop {
@@ -127,7 +123,7 @@ where
 }
 
 #[async_std::main]
-async fn main() -> SolarResult<()> {
+async fn main() -> Result<()> {
     env_logger::init();
     log::set_max_level(log::LevelFilter::max());
 
