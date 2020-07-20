@@ -153,7 +153,7 @@ async fn main() -> Result<()> {
 
         println!("got broadcasted {}", msg);
         let broadcast_regexp =
-            r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=/]+)";
+            r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z\+/]+)=";
         let captures = Regex::new(broadcast_regexp)
             .unwrap()
             .captures(&msg)
