@@ -1,13 +1,13 @@
-use std::str::FromStr;
-use std::time::SystemTime;
+use std::{str::FromStr, time::SystemTime};
 
 use serde_json::Value;
 use sodiumoxide::crypto::sign::ed25519;
 
-use super::error::{Error, Result};
-use super::{ssb_sha256, stringify_json};
-use crate::crypto::ToSodiumObject;
-use crate::keystore::OwnedIdentity;
+use super::{
+    error::{Error, Result},
+    ssb_sha256, stringify_json,
+};
+use crate::{crypto::ToSodiumObject, keystore::OwnedIdentity};
 use sodiumoxide::crypto::hash::sha256;
 
 const MSG_PREVIOUS: &str = "previous";

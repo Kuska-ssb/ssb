@@ -10,7 +10,7 @@ use async_std::net::{IpAddr, SocketAddr, UdpSocket};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::{crypto::ed25519, crypto::ToSodiumObject};
+use crate::crypto::{ed25519, ToSodiumObject};
 
 use super::error::{Error, Result};
 

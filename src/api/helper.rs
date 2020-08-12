@@ -1,9 +1,10 @@
-use crate::feed::Message;
-use crate::rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter};
+use crate::{
+    feed::Message,
+    rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
+};
 use async_std::io::Write;
 
-use super::dto;
-use super::error::Result;
+use super::{dto, error::Result};
 
 const MAX_RPC_BODY_LEN: usize = 65536;
 

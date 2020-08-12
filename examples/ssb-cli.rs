@@ -6,22 +6,24 @@ extern crate crossbeam;
 extern crate regex;
 extern crate structopt;
 
-use std::fmt::Debug;
-use std::io::prelude::*;
+use std::{fmt::Debug, io::prelude::*};
 
-use async_std::io::Read;
-use async_std::net::{TcpStream, UdpSocket};
+use async_std::{
+    io::Read,
+    net::{TcpStream, UdpSocket},
+};
 
 use kuska_handshake::async_std::{handshake_client, BoxStream};
-use kuska_ssb::api::{
-    dto::{CreateHistoryStreamIn, CreateStreamIn, LatestOut, WhoAmIOut},
-    ApiCaller,
+use kuska_ssb::{
+    api::{
+        dto::{CreateHistoryStreamIn, CreateStreamIn, LatestOut, WhoAmIOut},
+        ApiCaller,
+    },
+    discovery::ssb_net_id,
+    feed::{is_privatebox, privatebox_decipher, Feed, Message},
+    keystore::{from_patchwork_local, OwnedIdentity},
+    rpc::{RecvMsg, RequestNo, RpcReader, RpcWriter},
 };
-use kuska_ssb::discovery::ssb_net_id;
-use kuska_ssb::feed::{is_privatebox, privatebox_decipher, Feed, Message};
-use kuska_ssb::keystore::from_patchwork_local;
-use kuska_ssb::keystore::OwnedIdentity;
-use kuska_ssb::rpc::{RecvMsg, RequestNo, RpcReader, RpcWriter};
 
 use regex::Regex;
 use sodiumoxide::crypto::sign::ed25519;

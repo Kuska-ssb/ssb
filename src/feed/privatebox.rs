@@ -1,7 +1,10 @@
 use crate::crypto::ToSodiumObject;
 
-use sodiumoxide::crypto::sign::SecretKey;
-use sodiumoxide::crypto::{scalarmult::curve25519, secretbox, sign::ed25519};
+use sodiumoxide::crypto::{
+    scalarmult::curve25519,
+    secretbox,
+    sign::{ed25519, SecretKey},
+};
 
 use super::error::{Error, Result};
 

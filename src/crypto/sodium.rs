@@ -1,5 +1,4 @@
-use sodiumoxide::crypto::hash::sha256;
-use sodiumoxide::crypto::sign::ed25519;
+use sodiumoxide::crypto::{hash::sha256, sign::ed25519};
 
 use super::error::{Error, Result};
 

@@ -1,10 +1,11 @@
 use serde_json::Value;
 
-use super::error::{Error, Result};
-use super::message::Message;
-use super::ssb_sha256;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
+use super::{
+    error::{Error, Result},
+    message::Message,
+    ssb_sha256,
+};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Feed {

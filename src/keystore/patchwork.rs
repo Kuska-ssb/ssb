@@ -1,10 +1,14 @@
-use async_std::io::{Read, Write};
-use async_std::prelude::*;
+use async_std::{
+    io::{Read, Write},
+    prelude::*,
+};
 
 use std::string::ToString;
 
-use super::error::{Error, Result};
-use super::OwnedIdentity;
+use super::{
+    error::{Error, Result},
+    OwnedIdentity,
+};
 use crate::crypto::{ToSodiumObject, ToSsbId};
 use serde_json::to_vec_pretty;
 

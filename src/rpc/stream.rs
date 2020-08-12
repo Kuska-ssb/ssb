@@ -1,7 +1,6 @@
 use super::error::{Error, Result};
 
-use async_std::io;
-use async_std::prelude::*;
+use async_std::{io, prelude::*};
 use log::{trace, warn};
 
 use async_stream::stream;
