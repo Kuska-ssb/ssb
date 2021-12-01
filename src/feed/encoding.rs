@@ -1,6 +1,6 @@
 use super::error::Result;
+use kuska_sodiumoxide::crypto::hash::sha256;
 use serde_json::Value;
-use sodiumoxide::crypto::hash::sha256;
 
 pub fn ssb_sha256(v: &Value) -> Result<sha256::Digest> {
     let v8encoding = stringify_json(&v)?

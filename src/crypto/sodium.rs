@@ -1,4 +1,4 @@
-use sodiumoxide::crypto::{hash::sha256, sign::ed25519};
+use kuska_sodiumoxide::crypto::{hash::sha256, sign::ed25519};
 
 use super::error::{Error, Result};
 

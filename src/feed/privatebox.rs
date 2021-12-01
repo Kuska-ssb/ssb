@@ -1,6 +1,6 @@
 use crate::crypto::ToSodiumObject;
 
-use sodiumoxide::crypto::{
+use kuska_sodiumoxide::crypto::{
     scalarmult::curve25519,
     secretbox,
     sign::{ed25519, SecretKey},
@@ -57,7 +57,7 @@ fn cipher(plaintext: &[u8], recipients: &[&ed25519::PublicKey]) -> Result<Box<[u
     let (h_pk, h_sk) = ed25519::gen_keypair();
 
     // Generated random 32-byte secret key used to encrypt the message body
-    let y = sodiumoxide::crypto::secretbox::gen_key();
+    let y = kuska_sodiumoxide::crypto::secretbox::gen_key();
 
     // Encrypt the plaintext with y, with a random nonce
     let nonce = secretbox::gen_nonce();
