@@ -1,5 +1,5 @@
 use crate::crypto::CURVE_ED25519_SUFFIX;
-use sodiumoxide::crypto::sign::ed25519;
+use kuska_sodiumoxide::crypto::sign::ed25519;
 
 #[derive(Debug, Clone)]
 pub struct OwnedIdentity {

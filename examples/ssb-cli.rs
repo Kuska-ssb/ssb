@@ -25,8 +25,8 @@ use kuska_ssb::{
     rpc::{RecvMsg, RequestNo, RpcReader, RpcWriter},
 };
 
+use kuska_sodiumoxide::crypto::sign::ed25519;
 use regex::Regex;
-use sodiumoxide::crypto::sign::ed25519;
 use structopt::StructOpt;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;

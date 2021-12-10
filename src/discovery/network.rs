@@ -1,4 +1,4 @@
-use sodiumoxide::crypto::auth;
+use kuska_sodiumoxide::crypto::auth;
 
 pub const SSB_NET_ID: &str = "d4a1cb88a66f02f8db635ce26441cc5dac1b08420ceaac230839b755845a9ffb";
 pub fn ssb_net_id() -> auth::Key {

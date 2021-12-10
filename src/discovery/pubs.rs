@@ -1,5 +1,5 @@
 use crate::crypto::ToSodiumObject;
-use sodiumoxide::crypto::sign::ed25519;
+use kuska_sodiumoxide::crypto::sign::ed25519;
 
 use super::error::{Error, Result};
 

@@ -20,13 +20,13 @@ impl BlobsGetIn {
             max: None,
         }
     }
-    pub fn size(self: Self, size: u64) -> Self {
+    pub fn size(self, size: u64) -> Self {
         Self {
             size: Some(size),
             ..self
         }
     }
-    pub fn max(self: Self, max: u64) -> Self {
+    pub fn max(self, max: u64) -> Self {
         Self {
             max: Some(max),
             ..self

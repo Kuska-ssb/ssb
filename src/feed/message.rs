@@ -1,14 +1,14 @@
 use std::{str::FromStr, time::SystemTime};
 
+use kuska_sodiumoxide::crypto::sign::ed25519;
 use serde_json::Value;
-use sodiumoxide::crypto::sign::ed25519;
 
 use super::{
     error::{Error, Result},
     ssb_sha256, stringify_json,
 };
 use crate::{crypto::ToSodiumObject, keystore::OwnedIdentity};
-use sodiumoxide::crypto::hash::sha256;
+use kuska_sodiumoxide::crypto::hash::sha256;
 
 const MSG_PREVIOUS: &str = "previous";
 const MSG_AUTHOR: &str = "author";
@@ -23,7 +23,7 @@ macro_rules! cast {
         match $input {
             Some($pth(x)) => Ok(x),
             _ => Err(Error::InvalidJson),
-        };
+        }
     };
 }
 
@@ -34,7 +34,7 @@ macro_rules! cast_opt {
             Some(Value::Null) => Ok(None),
             Some($pth(x)) => Ok(Some(x)),
             _ => Err(Error::InvalidJson),
-        };
+        }
     };
 }
 
@@ -104,7 +104,7 @@ impl Message {
     }
 
     pub fn from_slice(s: &[u8]) -> Result<Self> {
-        Self::from_value(serde_json::from_slice(&s)?)
+        Self::from_value(serde_json::from_slice(s)?)
     }
 
     pub fn from_value(v: Value) -> Result<Self> {
@@ -126,7 +126,7 @@ impl Message {
 
         let value = Value::Object(v);
         let signed_text = stringify_json(&value)?;
-        if !ed25519::verify_detached(&sig, &signed_text.as_ref(), &signer) {
+        if !ed25519::verify_detached(&sig, signed_text.as_ref(), &signer) {
             return Err(Error::InvalidSignature);
         }
 
@@ -181,7 +181,7 @@ impl FromStr for Message {
     type Err = Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        Message::from_value(serde_json::from_str::<Value>(&s)?)
+        Message::from_value(serde_json::from_str::<Value>(s)?)
     }
 }
 

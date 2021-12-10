@@ -1,9 +1,9 @@
 use super::error::Result;
+use kuska_sodiumoxide::crypto::hash::sha256;
 use serde_json::Value;
-use sodiumoxide::crypto::hash::sha256;
 
 pub fn ssb_sha256(v: &Value) -> Result<sha256::Digest> {
-    let v8encoding = stringify_json(&v)?
+    let v8encoding = stringify_json(v)?
         .encode_utf16()
         .map(|ch_u16| (ch_u16 & 0xff) as u8)
         .collect::<Vec<u8>>();
@@ -27,7 +27,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
                         buffer.push_str(spaces(level + 1));
                         buffer.push_str(&serde_json::to_string(&key)?);
                         buffer.push_str(": ");
-                        append_json(buffer, level + 1, &value)?;
+                        append_json(buffer, level + 1, value)?;
                         if i < values.len() - 1 {
                             buffer.push(',');
                         }
@@ -44,7 +44,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
                     buffer.push_str("[\n");
                     for (i, value) in values.iter().enumerate() {
                         buffer.push_str(spaces(level + 1));
-                        append_json(buffer, level + 1, &value)?;
+                        append_json(buffer, level + 1, value)?;
                         if i < values.len() - 1 {
                             buffer.push(',');
                         }
@@ -59,7 +59,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
             }
             Value::Number(value) => {
                 let mut as_str = value.to_string();
-                if as_str.contains('e') && !as_str.contains("e-") {
+                if as_str.contains('e') && !as_str.contains("e-") && !as_str.contains("e+") {
                     as_str = as_str.replace("e", "e+")
                 }
                 buffer.push_str(&as_str);
@@ -74,7 +74,7 @@ pub fn stringify_json(v: &Value) -> Result<String> {
         Ok(())
     }
     let mut result = String::new();
-    append_json(&mut result, 0, &v)?;
+    append_json(&mut result, 0, v)?;
     Ok(result)
 }
 

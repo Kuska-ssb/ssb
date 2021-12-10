@@ -67,57 +67,57 @@ impl<K> Default for CreateStreamIn<K> {
 }
 
 impl<K> CreateStreamIn<K> {
-    pub fn live(self: Self, live: bool) -> Self {
+    pub fn live(self, live: bool) -> Self {
         Self {
             live: Some(live),
             ..self
         }
     }
-    pub fn gt(self: Self, v: K) -> Self {
+    pub fn gt(self, v: K) -> Self {
         Self {
             gt: Some(v),
             ..self
         }
     }
-    pub fn gte(self: Self, v: K) -> Self {
+    pub fn gte(self, v: K) -> Self {
         Self {
             gte: Some(v),
             ..self
         }
     }
-    pub fn lt(self: Self, v: K) -> Self {
+    pub fn lt(self, v: K) -> Self {
         Self {
             lt: Some(v),
             ..self
         }
     }
-    pub fn lte(self: Self, v: K) -> Self {
+    pub fn lte(self, v: K) -> Self {
         Self {
             lte: Some(v),
             ..self
         }
     }
-    pub fn reverse(self: Self, reversed: bool) -> Self {
+    pub fn reverse(self, reversed: bool) -> Self {
         Self {
             reverse: Some(reversed),
             ..self
         }
     }
-    pub fn keys_values(self: Self, keys: bool, values: bool) -> Self {
+    pub fn keys_values(self, keys: bool, values: bool) -> Self {
         Self {
             keys: Some(keys),
             values: Some(values),
             ..self
         }
     }
-    pub fn encoding(self: Self, keys: String, values: String) -> Self {
+    pub fn encoding(self, keys: String, values: String) -> Self {
         Self {
             key_encoding: Some(keys),
             value_encoding: Some(values),
             ..self
         }
     }
-    pub fn limit(self: Self, limit: i64) -> Self {
+    pub fn limit(self, limit: i64) -> Self {
         Self {
             limit: Some(limit),
             ..self
