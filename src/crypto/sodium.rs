@@ -1,4 +1,4 @@
-use sodiumoxide::crypto::{hash::sha256, sign::ed25519};
+use kuska_sodiumoxide::crypto::{hash::sha256, sign::ed25519};
 
 use super::error::{Error, Result};
 
@@ -46,12 +46,12 @@ impl ToSodiumObject for str {
         let key_len = self.len() - CURVE_ED25519_SUFFIX.len();
         let bytes = base64::decode(&self[..key_len])?;
 
-        ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)
+        ed25519::PublicKey::from_slice(&bytes).ok_or(Error::BadPublicKey)
     }
     fn to_ed25519_pk_no_suffix(self: &str) -> Result<ed25519::PublicKey> {
         let bytes = base64::decode(&self)?;
 
-        ed25519::PublicKey::from_slice(&bytes).ok_or_else(|| Error::BadPublicKey)
+        ed25519::PublicKey::from_slice(&bytes).ok_or(Error::BadPublicKey)
     }
 
     fn to_ed25519_sk(self: &str) -> Result<ed25519::SecretKey> {
@@ -62,13 +62,13 @@ impl ToSodiumObject for str {
         let key_len = self.len() - CURVE_ED25519_SUFFIX.len();
         let bytes = base64::decode(&self[..key_len])?;
 
-        ed25519::SecretKey::from_slice(&bytes).ok_or_else(|| Error::BadSecretKey)
+        ed25519::SecretKey::from_slice(&bytes).ok_or(Error::BadSecretKey)
     }
 
     fn to_ed25519_sk_no_suffix(self: &str) -> Result<ed25519::SecretKey> {
-        let bytes = base64::decode(&self[..])?;
+        let bytes = base64::decode(self)?;
 
-        ed25519::SecretKey::from_slice(&bytes).ok_or_else(|| Error::BadSecretKey)
+        ed25519::SecretKey::from_slice(&bytes).ok_or(Error::BadSecretKey)
     }
 
     fn to_sha256(self: &str) -> Result<sha256::Digest> {

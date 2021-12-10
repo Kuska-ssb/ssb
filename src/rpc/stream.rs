@@ -279,10 +279,7 @@ impl<W: io::Write + Unpin> RpcWriter<W> {
             message,
         })?;
 
-        let is_stream = match rpc_type {
-            RpcType::Async => false,
-            _ => true,
-        };
+        let is_stream = !matches!(rpc_type, RpcType::Async);
 
         let rpc_header = Header {
             req_no: -req_no,

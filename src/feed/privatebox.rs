@@ -1,6 +1,6 @@
 use crate::crypto::ToSodiumObject;
 
-use sodiumoxide::crypto::{
+use kuska_sodiumoxide::crypto::{
     scalarmult::curve25519,
     secretbox,
     sign::{ed25519, SecretKey},
@@ -27,7 +27,7 @@ pub fn privatebox_cipher(plaintext: &str, recipients: &[&str]) -> Result<String>
 
     let recipients = recipients?;
 
-    let recipients_ref: Vec<_> = recipients.iter().map(|r| r).collect();
+    let recipients_ref: Vec<_> = recipients.iter().collect();
 
     let ciphertext = cipher(plaintext.as_bytes(), &recipients_ref[..])?;
 
@@ -38,7 +38,7 @@ pub fn privatebox_decipher(ciphertext: &str, sk: &SecretKey) -> Result<Option<St
     let msg = &ciphertext.as_bytes()[..ciphertext.len() - SUFFIX.len()];
     let msg = base64::decode(msg)?;
 
-    let plaintext = decipher(&msg, &sk)?.map(|msg| String::from_utf8_lossy(&msg).to_string());
+    let plaintext = decipher(&msg, sk)?.map(|msg| String::from_utf8_lossy(&msg).to_string());
 
     Ok(plaintext)
 }
@@ -57,7 +57,7 @@ fn cipher(plaintext: &[u8], recipients: &[&ed25519::PublicKey]) -> Result<Box<[u
     let (h_pk, h_sk) = ed25519::gen_keypair();
 
     // Generated random 32-byte secret key used to encrypt the message body
-    let y = sodiumoxide::crypto::secretbox::gen_key();
+    let y = kuska_sodiumoxide::crypto::secretbox::gen_key();
 
     // Encrypt the plaintext with y, with a random nonce
     let nonce = secretbox::gen_nonce();
@@ -82,7 +82,7 @@ fn cipher(plaintext: &[u8], recipients: &[&ed25519::PublicKey]) -> Result<Box<[u
     buffer.extend_from_slice(&h_pk.to_curve25519()[..]);
 
     for recipient in recipients {
-        let key = curve25519::scalarmult(&h_sk_scalar, &recipient.to_curve25519())
+        let key = curve25519::scalarmult(h_sk_scalar, &recipient.to_curve25519())
             .map_err(|_| Error::CryptoScalarMultFailed)?;
 
         let key = secretbox::Key::from_slice(&key[..]).ok_or(Error::CryptoKeyFromGrupFailed)?;

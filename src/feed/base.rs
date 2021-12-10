@@ -39,7 +39,7 @@ impl Feed {
         }
     }
     pub fn from_slice(s: &[u8]) -> Result<Self> {
-        let feed: Feed = serde_json::from_slice(&s)?;
+        let feed: Feed = serde_json::from_slice(s)?;
         let digest = format!("%{}.sha256", base64::encode(&ssb_sha256(&feed.value)?));
 
         if digest != feed.key {

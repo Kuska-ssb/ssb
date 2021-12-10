@@ -34,26 +34,26 @@ impl CreateHistoryStreamIn {
             limit: None,
         }
     }
-    pub fn after_seq(self: Self, seq: u64) -> Self {
+    pub fn after_seq(self, seq: u64) -> Self {
         Self {
             seq: Some(seq),
             ..self
         }
     }
-    pub fn live(self: Self, live: bool) -> Self {
+    pub fn live(self, live: bool) -> Self {
         Self {
             live: Some(live),
             ..self
         }
     }
-    pub fn keys_values(self: Self, keys: bool, values: bool) -> Self {
+    pub fn keys_values(self, keys: bool, values: bool) -> Self {
         Self {
             keys: Some(keys),
             values: Some(values),
             ..self
         }
     }
-    pub fn limit(self: Self, limit: i64) -> Self {
+    pub fn limit(self, limit: i64) -> Self {
         Self {
             limit: Some(limit),
             ..self
