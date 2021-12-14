@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/kuska-ssb/kuska-ssb/workflows/Rust/badge.svg)](https://github.com/kuska-ssb/kuska-ssb/actions?query=workflow%3ARust) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FKuska-ssb%2Fssb.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FKuska-ssb%2Fssb?ref=badge_shield)
+[![Build Status](https://github.com/kuska-ssb/kuska-ssb/workflows/Rust/badge.svg)](https://github.com/kuska-ssb/kuska-ssb/actions?query=workflow%3ARust)
 
 
 # kuska-ssb
