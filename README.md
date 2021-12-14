@@ -11,5 +11,3 @@ kuska is an implementation of decentralized social network [Secure Scuttlebutt](
 kuska-ssb is the implementation of protocols involved in ssb (unless the the handhake and box stream that are in the [ssb-handshake repo](https://github.com/Kuska-ssb/kuska-handshake) ), detailed information about the protocol can be found in https://ssbc.github.io/scuttlebutt-protocol-guide/ and https://scuttlebot.io/apis/scuttlebot/ssb.html
 
 
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FKuska-ssb%2Fssb.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FKuska-ssb%2Fssb?ref=badge_large)
