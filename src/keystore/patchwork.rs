@@ -7,20 +7,10 @@ use std::string::ToString;
 
 use super::{
     error::{Error, Result},
-    OwnedIdentity,
+    JsonSSBSecret, OwnedIdentity, CURVE_ED25519,
 };
 use crate::crypto::{ToSodiumObject, ToSsbId};
 use serde_json::to_vec_pretty;
-
-pub const CURVE_ED25519: &str = "ed25519";
-
-#[derive(Serialize, Deserialize)]
-struct JsonSSBSecret {
-    id: String,
-    curve: String,
-    public: String,
-    private: String,
-}
 
 fn to_io_error<T: ToString>(err: T) -> async_std::io::Error {
     async_std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
