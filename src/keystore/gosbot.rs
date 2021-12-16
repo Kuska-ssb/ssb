@@ -7,17 +7,11 @@ use async_std::{
     prelude::*,
 };
 
-use std::string::ToString;
-
 use super::{
     error::{Error, Result},
-    JsonSSBSecret, OwnedIdentity, CURVE_ED25519,
+    util, JsonSSBSecret, OwnedIdentity, CURVE_ED25519,
 };
 use crate::crypto::{ToSodiumObject, ToSsbId};
-
-fn to_io_error<T: ToString>(err: T) -> async_std::io::Error {
-    async_std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
-}
 
 /// Return an `OwnedIdentity` from the local go-sbot secret file.
 pub async fn from_gosbot_local() -> Result<OwnedIdentity> {
@@ -34,7 +28,7 @@ pub async fn read_gosbot_config<R: Read + Unpin>(reader: &mut R) -> Result<Owned
     reader.read_to_string(&mut buf).await?;
 
     // parse json
-    let secret: JsonSSBSecret = serde_json::from_str(buf.as_ref()).map_err(to_io_error)?;
+    let secret: JsonSSBSecret = serde_json::from_str(buf.as_ref()).map_err(util::to_io_error)?;
 
     if secret.curve != CURVE_ED25519 {
         return Err(Error::InvalidConfig);

@@ -3,18 +3,12 @@ use async_std::{
     prelude::*,
 };
 
-use std::string::ToString;
-
 use super::{
     error::{Error, Result},
-    JsonSSBSecret, OwnedIdentity, CURVE_ED25519,
+    util, JsonSSBSecret, OwnedIdentity, CURVE_ED25519,
 };
 use crate::crypto::{ToSodiumObject, ToSsbId};
 use serde_json::to_vec_pretty;
-
-fn to_io_error<T: ToString>(err: T) -> async_std::io::Error {
-    async_std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
-}
 
 pub async fn from_patchwork_local() -> Result<OwnedIdentity> {
     let home_dir = dirs::home_dir().ok_or(Error::HomeNotFound)?;
@@ -34,7 +28,7 @@ pub async fn read_patchwork_config<R: Read + Unpin>(reader: &mut R) -> Result<Ow
         .join("");
 
     // parse json
-    let secret: JsonSSBSecret = serde_json::from_str(json.as_ref()).map_err(to_io_error)?;
+    let secret: JsonSSBSecret = serde_json::from_str(json.as_ref()).map_err(util::to_io_error)?;
 
     if secret.curve != CURVE_ED25519 {
         return Err(Error::InvalidConfig);
