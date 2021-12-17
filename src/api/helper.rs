@@ -1,4 +1,5 @@
 use crate::{
+    api::dto::content::TypedMessage,
     feed::Message,
     rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
 };
@@ -10,6 +11,7 @@ const MAX_RPC_BODY_LEN: usize = 65536;
 
 #[derive(Debug)]
 pub enum ApiMethod {
+    Publish,
     WhoAmI,
     Get,
     CreateHistoryStream,
@@ -23,6 +25,7 @@ impl ApiMethod {
     pub fn selector(&self) -> &'static [&'static str] {
         use ApiMethod::*;
         match self {
+            Publish => &["publish"],
             WhoAmI => &["whoami"],
             Get => &["get"],
             CreateHistoryStream => &["createHistoryStream"],
@@ -35,6 +38,7 @@ impl ApiMethod {
     pub fn from_selector(s: &[&str]) -> Option<Self> {
         use ApiMethod::*;
         match s {
+            ["publish"] => Some(Publish),
             ["whoami"] => Some(WhoAmI),
             ["get"] => Some(Get),
             ["createHistoryStream"] => Some(CreateHistoryStream),
@@ -62,6 +66,23 @@ impl<W: Write + Unpin> ApiCaller<W> {
 
     pub fn rpc(&mut self) -> &mut RpcWriter<W> {
         &mut self.rpc
+    }
+
+    /// Send ["publish"] request.
+    pub async fn publish_req_send(&mut self, msg: TypedMessage) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(ApiMethod::Publish.selector(), RpcType::Async, &msg)
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send ["publish"] response.
+    pub async fn publish_res_send(&mut self, req_no: RequestNo, msg_ref: String) -> Result<()> {
+        Ok(self
+            .rpc
+            .send_response(req_no, RpcType::Async, BodyType::JSON, msg_ref.as_bytes())
+            .await?)
     }
 
     /// Send ["whoami"] request.
