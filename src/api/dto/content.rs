@@ -32,28 +32,28 @@ impl Post {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PubAddress {
     pub host: Option<String>,
     pub port: u16,
     pub key: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum VoteValue {
     Numeric(i64),
     Boolean(bool),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Vote {
     link: SsbHash,
     value: VoteValue,
     expression: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Image {
     OnlyLink(SsbHash),
@@ -68,7 +68,7 @@ pub enum Image {
     },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DateTime {
     epoch: u64,
     tz: String,
@@ -90,7 +90,7 @@ pub enum Mentions {
     Map(HashMap<String, Mention>),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum TypedMessage {
     #[serde(rename = "pub")]
