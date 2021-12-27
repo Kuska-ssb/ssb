@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 pub type SsbHash = String;
 pub type SsbId = String;
+pub type SsbMsgType = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Mention {
@@ -141,4 +142,23 @@ pub enum TypedMessage {
     Channel { channel: String, subscribed: bool },
     #[serde(rename = "vote")]
     Vote { vote: Vote },
+}
+
+//op 	    args name 	args type
+//and 	    args 	[op, ...]
+//or 	    args 	[op, ...]
+//type 	    string 	string
+//author    feed 	string
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SubsetQuery {
+    // {"op":"type","string":"foo"}
+    Type { op: String, string: SsbMsgType },
+    //#[serde(rename = "author")]
+    Author { op: String, feed: SsbId },
+    //#[serde(rename = "and")]
+    //And { args: Vec<SubsetQuery> },
+    //#[serde(rename = "or")]
+    //Or { args: Vec<SubsetQuery> },
 }
