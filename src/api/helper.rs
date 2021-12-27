@@ -1,5 +1,5 @@
 use crate::{
-    api::dto::content::TypedMessage,
+    api::dto::content::{SubsetQuery, TypedMessage},
     feed::Message,
     rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
 };
