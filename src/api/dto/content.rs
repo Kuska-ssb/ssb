@@ -8,6 +8,7 @@ pub type SsbId = String;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Mention {
     pub link: SsbId,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
 
@@ -16,6 +17,7 @@ pub struct Post {
     #[serde(rename = "type")]
     pub xtype: String,
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mentions: Option<Vec<Mention>>,
 }
 
@@ -34,6 +36,7 @@ impl Post {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PubAddress {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
     pub port: u16,
     pub key: String,
@@ -50,6 +53,7 @@ pub enum VoteValue {
 pub struct Vote {
     link: SsbHash,
     value: VoteValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
     expression: Option<String>,
 }
 
@@ -59,9 +63,12 @@ pub enum Image {
     OnlyLink(SsbHash),
     Complete {
         link: SsbHash,
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         size: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
         width: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         height: Option<u32>,
         #[serde(rename = "type")]
         content_type: String,
@@ -98,24 +105,35 @@ pub enum TypedMessage {
     #[serde(rename = "post")]
     Post {
         text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
         mentions: Option<Vec<Mention>>,
     },
     #[serde(rename = "contact")]
     Contact {
         contact: Option<SsbId>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         blocking: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         following: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         autofollow: Option<bool>,
     },
     #[serde(rename = "about")]
     About {
         about: SsbId,
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         title: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         branch: Option<SsbHash>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         image: Option<Image>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         description: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         location: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "startDateTime")]
         start_datetime: Option<DateTime>,
     },
