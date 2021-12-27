@@ -11,6 +11,7 @@ const MAX_RPC_BODY_LEN: usize = 65536;
 
 #[derive(Debug)]
 pub enum ApiMethod {
+    GetSubset,
     Publish,
     WhoAmI,
     Get,
@@ -25,6 +26,7 @@ impl ApiMethod {
     pub fn selector(&self) -> &'static [&'static str] {
         use ApiMethod::*;
         match self {
+            GetSubset => &["partialReplication", "getSubset"],
             Publish => &["publish"],
             WhoAmI => &["whoami"],
             Get => &["get"],
@@ -38,6 +40,7 @@ impl ApiMethod {
     pub fn from_selector(s: &[&str]) -> Option<Self> {
         use ApiMethod::*;
         match s {
+            ["partialReplication", "getSubset"] => Some(GetSubset),
             ["publish"] => Some(Publish),
             ["whoami"] => Some(WhoAmI),
             ["get"] => Some(Get),
@@ -66,6 +69,15 @@ impl<W: Write + Unpin> ApiCaller<W> {
 
     pub fn rpc(&mut self) -> &mut RpcWriter<W> {
         &mut self.rpc
+    }
+
+    /// Send ["partialReplication", "getSubset"] request.
+    pub async fn getsubset_req_send(&mut self, query: SubsetQuery) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(ApiMethod::GetSubset.selector(), RpcType::Source, &query)
+            .await?;
+        Ok(req_no)
     }
 
     /// Send ["publish"] request.
