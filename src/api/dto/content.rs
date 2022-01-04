@@ -144,21 +144,13 @@ pub enum TypedMessage {
     Vote { vote: Vote },
 }
 
-//op 	    args name 	args type
-//and 	    args 	[op, ...]
-//or 	    args 	[op, ...]
-//type 	    string 	string
-//author    feed 	string
-
+/// An ssb-ql-1 query as defined by the 'Subset replication for SSB'
+/// specification.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SubsetQuery {
-    // {"op":"type","string":"foo"}
     Type { op: String, string: SsbMsgType },
-    //#[serde(rename = "author")]
     Author { op: String, feed: SsbId },
-    //#[serde(rename = "and")]
-    //And { args: Vec<SubsetQuery> },
-    //#[serde(rename = "or")]
-    //Or { args: Vec<SubsetQuery> },
+    And { op: String, args: Vec<SubsetQuery> },
+    Or { op: String, args: Vec<SubsetQuery> },
 }
