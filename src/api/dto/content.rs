@@ -154,3 +154,16 @@ pub enum SubsetQuery {
     And { op: String, args: Vec<SubsetQuery> },
     Or { op: String, args: Vec<SubsetQuery> },
 }
+
+/// Optional parameters for defining the order, shape and length of
+/// returned query data.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubsetQueryOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub descending: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keys: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pageLimit")]
+    pub page_limit: Option<u32>,
+}
