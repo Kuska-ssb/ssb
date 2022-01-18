@@ -1,5 +1,5 @@
 use crate::{
-    api::dto::content::{SubsetQuery, TypedMessage},
+    api::dto::content::{SubsetQuery, SubsetQueryOptions, TypedMessage},
     feed::Message,
     rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
 };
@@ -72,10 +72,19 @@ impl<W: Write + Unpin> ApiCaller<W> {
     }
 
     /// Send ["partialReplication", "getSubset"] request.
-    pub async fn getsubset_req_send(&mut self, query: SubsetQuery) -> Result<RequestNo> {
+    pub async fn getsubset_req_send(
+        &mut self,
+        query: SubsetQuery,
+        opts: Option<SubsetQueryOptions>,
+    ) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(ApiMethod::GetSubset.selector(), RpcType::Source, &query)
+            .send_request(
+                ApiMethod::GetSubset.selector(),
+                RpcType::Source,
+                &query,
+                &opts,
+            )
             .await?;
         Ok(req_no)
     }
@@ -84,7 +93,13 @@ impl<W: Write + Unpin> ApiCaller<W> {
     pub async fn publish_req_send(&mut self, msg: TypedMessage) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(ApiMethod::Publish.selector(), RpcType::Async, &msg)
+            .send_request(
+                ApiMethod::Publish.selector(),
+                RpcType::Async,
+                &msg,
+                // specify None value for `opts`
+                &None::<()>,
+            )
             .await?;
         Ok(req_no)
     }
@@ -102,7 +117,12 @@ impl<W: Write + Unpin> ApiCaller<W> {
         let args: [&str; 0] = [];
         let req_no = self
             .rpc
-            .send_request(ApiMethod::WhoAmI.selector(), RpcType::Async, &args)
+            .send_request(
+                ApiMethod::WhoAmI.selector(),
+                RpcType::Async,
+                &args,
+                &None::<()>,
+            )
             .await?;
         Ok(req_no)
     }
@@ -120,7 +140,12 @@ impl<W: Write + Unpin> ApiCaller<W> {
     pub async fn get_req_send(&mut self, msg_id: &str) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(ApiMethod::Get.selector(), RpcType::Async, &msg_id)
+            .send_request(
+                ApiMethod::Get.selector(),
+                RpcType::Async,
+                &msg_id,
+                &None::<()>,
+            )
             .await?;
         Ok(req_no)
     }
@@ -149,6 +174,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
                 ApiMethod::CreateHistoryStream.selector(),
                 RpcType::Source,
                 &args,
+                &None::<()>,
             )
             .await?;
         Ok(req_no)
@@ -165,6 +191,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
                 ApiMethod::CreateFeedStream.selector(),
                 RpcType::Source,
                 &args,
+                &None::<()>,
             )
             .await?;
         Ok(req_no)
@@ -175,7 +202,12 @@ impl<W: Write + Unpin> ApiCaller<W> {
         let args: [&str; 0] = [];
         let req_no = self
             .rpc
-            .send_request(ApiMethod::Latest.selector(), RpcType::Async, &args)
+            .send_request(
+                ApiMethod::Latest.selector(),
+                RpcType::Async,
+                &args,
+                &None::<()>,
+            )
             .await?;
         Ok(req_no)
     }
@@ -184,7 +216,12 @@ impl<W: Write + Unpin> ApiCaller<W> {
     pub async fn blobs_get_req_send(&mut self, args: &dto::BlobsGetIn) -> Result<RequestNo> {
         let req_no = self
             .rpc
-            .send_request(ApiMethod::BlobsGet.selector(), RpcType::Source, &args)
+            .send_request(
+                ApiMethod::BlobsGet.selector(),
+                RpcType::Source,
+                &args,
+                &None::<()>,
+            )
             .await?;
         Ok(req_no)
     }
@@ -206,6 +243,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
                 ApiMethod::BlobsCreateWants.selector(),
                 RpcType::Source,
                 &args,
+                &None::<()>,
             )
             .await?;
         Ok(req_no)
