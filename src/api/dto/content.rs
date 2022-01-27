@@ -167,3 +167,25 @@ pub struct SubsetQueryOptions {
     #[serde(rename = "pageLimit")]
     pub page_limit: Option<u32>,
 }
+
+/// Query the follow or block state of two peers.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RelationshipQuery {
+    pub source: String,
+    pub dest: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FriendsHops {
+    /// A maximum hops distance. Nodes beyond this distance are omitted from
+    /// the output.
+    pub max: i32,
+    /// Reverse the perspective when calculating hops distance; from `start`
+    /// looking "out" (`false`) or from the peer ID(s) looking "in" (`true`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reverse: Option<bool>,
+    /// Feed ID of the "central" node where distance is zero.
+    /// (Default: sbot.id).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+}
