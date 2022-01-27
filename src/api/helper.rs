@@ -1,5 +1,7 @@
 use crate::{
-    api::dto::content::{SubsetQuery, SubsetQueryOptions, TypedMessage},
+    api::dto::content::{
+        FriendsHops, RelationshipQuery, SubsetQuery, SubsetQueryOptions, TypedMessage,
+    },
     feed::Message,
     rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
 };
@@ -11,6 +13,9 @@ const MAX_RPC_BODY_LEN: usize = 65536;
 
 #[derive(Debug)]
 pub enum ApiMethod {
+    FriendsIsFollowing,
+    FriendsIsBlocking,
+    FriendsHops,
     GetSubset,
     Publish,
     WhoAmI,
@@ -26,6 +31,9 @@ impl ApiMethod {
     pub fn selector(&self) -> &'static [&'static str] {
         use ApiMethod::*;
         match self {
+            FriendsIsFollowing => &["friends", "isFollowing"],
+            FriendsIsBlocking => &["friends", "isBlocking"],
+            FriendsHops => &["friends", "hops"],
             GetSubset => &["partialReplication", "getSubset"],
             Publish => &["publish"],
             WhoAmI => &["whoami"],
@@ -40,6 +48,9 @@ impl ApiMethod {
     pub fn from_selector(s: &[&str]) -> Option<Self> {
         use ApiMethod::*;
         match s {
+            ["friends", "isFollowing"] => Some(FriendsIsFollowing),
+            ["friends", "isBlocking"] => Some(FriendsIsBlocking),
+            ["friends", "hops"] => Some(FriendsHops),
             ["partialReplication", "getSubset"] => Some(GetSubset),
             ["publish"] => Some(Publish),
             ["whoami"] => Some(WhoAmI),
@@ -69,6 +80,57 @@ impl<W: Write + Unpin> ApiCaller<W> {
 
     pub fn rpc(&mut self) -> &mut RpcWriter<W> {
         &mut self.rpc
+    }
+
+    /// Send ["friends", "isFollowing"] request.
+    pub async fn friends_is_following_req_send(
+        &mut self,
+        args: RelationshipQuery,
+    ) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::FriendsIsFollowing.selector(),
+                RpcType::Async,
+                &args,
+                // specify None value for `opts`
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send ["friends", "isBlocking"] request.
+    pub async fn friends_is_blocking_req_send(
+        &mut self,
+        args: RelationshipQuery,
+    ) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::FriendsIsBlocking.selector(),
+                RpcType::Async,
+                &args,
+                // specify None value for `opts`
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send ["friends", "hops"] request
+    pub async fn friends_hops_req_send(&mut self, args: FriendsHops) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::FriendsHops.selector(),
+                RpcType::Source,
+                &args,
+                // specify None value for `opts`
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
     }
 
     /// Send ["partialReplication", "getSubset"] request.
