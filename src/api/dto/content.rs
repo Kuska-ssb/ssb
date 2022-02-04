@@ -189,3 +189,9 @@ pub struct FriendsHops {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start: Option<String>,
 }
+
+/// Optional parameter for defining the number of times an invite can be used.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InviteCreateOptions {
+    pub uses: u16,
+}
