@@ -14,6 +14,13 @@ const RPC_HEADER_STREAM_FLAG: u8 = 1 << 3;
 const RPC_HEADER_END_OR_ERROR_FLAG: u8 = 1 << 2;
 const RPC_HEADER_BODY_TYPE_MASK: u8 = 0b11;
 
+#[derive(Debug)]
+pub enum ArgType {
+    Array,
+    Tuple,
+    Object,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BodyType {
     Binary,
@@ -216,21 +223,28 @@ impl<W: io::Write + Unpin> RpcWriter<W> {
         &mut self,
         name: &[&str],
         rpc_type: RpcType,
+        arg_type: ArgType,
         args: &T,
         opts: &Option<U>,
     ) -> Result<RequestNo> {
         self.req_no += 1;
 
-        let body_str = match opts {
-            Some(options) => serde_json::to_string(&BodyRefWithOpts {
-                name,
-                rpc_type,
-                args: (args, options),
-            })?,
-            None => serde_json::to_string(&BodyRef {
+        // the arg_type allows us to package the args in the correct form
+        let body_str = match arg_type {
+            ArgType::Array => serde_json::to_string(&BodyRef {
                 name,
                 rpc_type,
                 args: &[args],
+            })?,
+            ArgType::Tuple => serde_json::to_string(&BodyRefWithOpts {
+                name,
+                rpc_type,
+                args: (args, opts),
+            })?,
+            ArgType::Object => serde_json::to_string(&BodyRef {
+                name,
+                rpc_type,
+                args: &args,
             })?,
         };
 

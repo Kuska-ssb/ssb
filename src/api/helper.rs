@@ -4,7 +4,7 @@ use crate::{
         TypedMessage,
     },
     feed::Message,
-    rpc::{Body, BodyType, RequestNo, RpcType, RpcWriter},
+    rpc::{ArgType, Body, BodyType, RequestNo, RpcType, RpcWriter},
 };
 use async_std::io::Write;
 
@@ -97,7 +97,9 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::InviteCreate.selector(),
                 RpcType::Async,
+                ArgType::Object,
                 &args,
+                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
@@ -111,6 +113,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::InviteUse.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &invite_code,
                 &None::<()>,
             )
@@ -128,8 +131,8 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::FriendsIsFollowing.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &args,
-                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
@@ -146,8 +149,8 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::FriendsIsBlocking.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &args,
-                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
@@ -161,8 +164,8 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::FriendsHops.selector(),
                 RpcType::Source,
+                ArgType::Array,
                 &args,
-                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
@@ -180,6 +183,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::GetSubset.selector(),
                 RpcType::Source,
+                ArgType::Tuple,
                 &query,
                 &opts,
             )
@@ -194,8 +198,8 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::Publish.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &msg,
-                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
@@ -218,6 +222,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::WhoAmI.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
@@ -241,6 +246,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::Get.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &msg_id,
                 &None::<()>,
             )
@@ -271,6 +277,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::CreateHistoryStream.selector(),
                 RpcType::Source,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
@@ -288,6 +295,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::CreateFeedStream.selector(),
                 RpcType::Source,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
@@ -303,6 +311,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::Latest.selector(),
                 RpcType::Async,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
@@ -317,6 +326,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::BlobsGet.selector(),
                 RpcType::Source,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
@@ -340,6 +350,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::BlobsCreateWants.selector(),
                 RpcType::Source,
+                ArgType::Array,
                 &args,
                 &None::<()>,
             )
