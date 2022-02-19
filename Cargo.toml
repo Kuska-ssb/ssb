@@ -1,8 +1,10 @@
 [package]
 name = "kuska-ssb"
-version = "0.2.0"
-authors = ["Dhole <dhole@riseup.net>", "Adria Massanet <adria@codecontext.io>"]
+version = "0.4.0"
+authors = ["Dhole <dhole@riseup.net>", "Adria Massanet <adria@codecontext.io>", "Andrew Reid <glyph@mycelial.technology>"]
 edition = "2021"
+description = "Secure Scuttlebutt library"
+license = "AGPL-3.0"
 
 [lib]
 name = "kuska_ssb"
