@@ -19,6 +19,7 @@ pub enum ApiMethod {
     FriendsIsFollowing,
     FriendsIsBlocking,
     FriendsHops,
+    FriendsBlocks,
     GetSubset,
     Publish,
     WhoAmI,
@@ -39,6 +40,7 @@ impl ApiMethod {
             FriendsIsFollowing => &["friends", "isFollowing"],
             FriendsIsBlocking => &["friends", "isBlocking"],
             FriendsHops => &["friends", "hops"],
+            FriendsBlocks => &["friends", "blocks"],
             GetSubset => &["partialReplication", "getSubset"],
             Publish => &["publish"],
             WhoAmI => &["whoami"],
@@ -58,6 +60,7 @@ impl ApiMethod {
             ["friends", "isFollowing"] => Some(FriendsIsFollowing),
             ["friends", "isBlocking"] => Some(FriendsIsBlocking),
             ["friends", "hops"] => Some(FriendsHops),
+            ["friends", "blocks"] => Some(FriendsBlocks),
             ["partialReplication", "getSubset"] => Some(GetSubset),
             ["publish"] => Some(Publish),
             ["whoami"] => Some(WhoAmI),
@@ -165,6 +168,22 @@ impl<W: Write + Unpin> ApiCaller<W> {
                 ApiMethod::FriendsHops.selector(),
                 RpcType::Source,
                 ArgType::Array,
+                &args,
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send ["friends", "blocks"] request
+    pub async fn friends_blocks_req_send(&mut self) -> Result<RequestNo> {
+        let args: [&str; 0] = [];
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::FriendsBlocks.selector(),
+                RpcType::Source,
+                ArgType::Object,
                 &args,
                 &None::<()>,
             )
