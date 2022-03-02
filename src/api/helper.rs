@@ -14,6 +14,7 @@ const MAX_RPC_BODY_LEN: usize = 65536;
 
 #[derive(Debug)]
 pub enum ApiMethod {
+    PrivatePublish,
     InviteCreate,
     InviteUse,
     FriendsIsFollowing,
@@ -35,6 +36,7 @@ impl ApiMethod {
     pub fn selector(&self) -> &'static [&'static str] {
         use ApiMethod::*;
         match self {
+            PrivatePublish => &["private", "publish"],
             InviteCreate => &["invite", "create"],
             InviteUse => &["invite", "use"],
             FriendsIsFollowing => &["friends", "isFollowing"],
@@ -55,6 +57,7 @@ impl ApiMethod {
     pub fn from_selector(s: &[&str]) -> Option<Self> {
         use ApiMethod::*;
         match s {
+            ["private", "publish"] => Some(PrivatePublish),
             ["invite", "create"] => Some(InviteCreate),
             ["invite", "use"] => Some(InviteUse),
             ["friends", "isFollowing"] => Some(FriendsIsFollowing),
@@ -90,6 +93,25 @@ impl<W: Write + Unpin> ApiCaller<W> {
 
     pub fn rpc(&mut self) -> &mut RpcWriter<W> {
         &mut self.rpc
+    }
+
+    /// Send ["private", "publish"] request.
+    pub async fn private_publish_req_send(
+        &mut self,
+        msg: TypedMessage,
+        recipients: Vec<String>,
+    ) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::PrivatePublish.selector(),
+                RpcType::Async,
+                ArgType::Tuple,
+                &msg,
+                &Some(recipients),
+            )
+            .await?;
+        Ok(req_no)
     }
 
     /// Send ["invite", "create"] request.
