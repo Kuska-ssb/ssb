@@ -13,12 +13,17 @@ use super::{
 };
 use crate::crypto::{ToSodiumObject, ToSsbId};
 
-/// Return an `OwnedIdentity` from the local go-sbot secret file.
+/// Return an `OwnedIdentity` from the local go-sbot secret file with a custom path
+pub async fn from_custom_gosbot_keypath(local_key_file: String) -> Result<OwnedIdentity> {
+    let mut file = async_std::fs::File::open(local_key_file).await?;
+    read_gosbot_config(&mut file).await
+}
+
+/// Return an `OwnedIdentity` from the local go-sbot secret file in the default location.
 pub async fn from_gosbot_local() -> Result<OwnedIdentity> {
     let home_dir = dirs::home_dir().ok_or(Error::HomeNotFound)?;
     let local_key_file = format!("{}/.ssb-go/secret", home_dir.to_string_lossy());
-    let mut file = async_std::fs::File::open(local_key_file).await?;
-    read_gosbot_config(&mut file).await
+    from_custom_gosbot_keypath(local_key_file).await
 }
 
 /// Read the contents of the go-sbot secret file, deserialize into a
