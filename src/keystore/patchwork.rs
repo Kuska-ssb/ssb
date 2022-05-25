@@ -10,11 +10,15 @@ use super::{
 use crate::crypto::{ToSodiumObject, ToSsbId};
 use serde_json::to_vec_pretty;
 
+pub async fn from_custom_patchwork_keypath(local_key_file: String) -> Result<OwnedIdentity> {
+    let mut file = async_std::fs::File::open(local_key_file).await?;
+    read_patchwork_config(&mut file).await
+}
+
 pub async fn from_patchwork_local() -> Result<OwnedIdentity> {
     let home_dir = dirs::home_dir().ok_or(Error::HomeNotFound)?;
     let local_key_file = format!("{}/.ssb/secret", home_dir.to_string_lossy());
-    let mut file = async_std::fs::File::open(local_key_file).await?;
-    read_patchwork_config(&mut file).await
+    from_custom_patchwork_keypath(local_key_file).await
 }
 
 pub async fn read_patchwork_config<R: Read + Unpin>(reader: &mut R) -> Result<OwnedIdentity> {
