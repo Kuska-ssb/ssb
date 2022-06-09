@@ -30,6 +30,7 @@ pub enum ApiMethod {
     NamesGet,
     NamesGetImageFor,
     NamesGetSignifier,
+    PrivatePublish,
     Publish,
     WhoAmI,
 }
@@ -54,6 +55,7 @@ impl ApiMethod {
             NamesGet => &["names", "get"],
             NamesGetImageFor => &["names", "getImageFor"],
             NamesGetSignifier => &["names", "getSignifier"],
+            PrivatePublish => &["private", "publish"],
             Publish => &["publish"],
             WhoAmI => &["whoami"],
         }
@@ -77,6 +79,7 @@ impl ApiMethod {
             ["names", "get"] => Some(NamesGet),
             ["names", "getImageFor"] => Some(NamesGetImageFor),
             ["names", "getSignifier"] => Some(NamesGetSignifier),
+            ["private", "publish"] => Some(PrivatePublish),
             ["publish"] => Some(Publish),
             ["whoami"] => Some(WhoAmI),
             _ => None,
@@ -418,6 +421,25 @@ impl<W: Write + Unpin> ApiCaller<W> {
                 ArgType::Array,
                 &msg,
                 &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send ["private", "publish"] request.
+    pub async fn private_publish_req_send(
+        &mut self,
+        msg: TypedMessage,
+        recipients: Vec<String>,
+    ) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::PrivatePublish.selector(),
+                RpcType::Async,
+                ArgType::Tuple,
+                &msg,
+                &Some(recipients),
             )
             .await?;
         Ok(req_no)
