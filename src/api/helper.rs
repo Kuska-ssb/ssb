@@ -32,6 +32,7 @@ pub enum ApiMethod {
     NamesGetSignifier,
     PrivatePublish,
     Publish,
+    TanglesThread,
     WhoAmI,
 }
 
@@ -57,6 +58,7 @@ impl ApiMethod {
             NamesGetSignifier => &["names", "getSignifier"],
             PrivatePublish => &["private", "publish"],
             Publish => &["publish"],
+            TanglesThread => &["tangles", "thread"],
             WhoAmI => &["whoami"],
         }
     }
@@ -81,6 +83,7 @@ impl ApiMethod {
             ["names", "getSignifier"] => Some(NamesGetSignifier),
             ["private", "publish"] => Some(PrivatePublish),
             ["publish"] => Some(Publish),
+            ["tangles", "thread"] => Some(TanglesThread),
             ["whoami"] => Some(WhoAmI),
             _ => None,
         }
@@ -451,6 +454,24 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .rpc
             .send_response(req_no, RpcType::Async, BodyType::JSON, msg_ref.as_bytes())
             .await?)
+    }
+
+    /// Send ["tangles", "thread"] request.
+    pub async fn tangles_thread_req_send(
+        &mut self,
+        args: &dto::TanglesThread,
+    ) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::TanglesThread.selector(),
+                RpcType::Source,
+                ArgType::Array,
+                &args,
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
     }
 
     /// Send ["whoami"] request.
