@@ -62,7 +62,7 @@ pub enum RpcType {
     Duplex,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Header {
     pub req_no: RequestNo,
     pub is_stream: bool,
