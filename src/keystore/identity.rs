@@ -12,7 +12,7 @@ pub struct JsonSSBSecret {
     pub public: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct OwnedIdentity {
     pub id: String,
     pub pk: ed25519::PublicKey,

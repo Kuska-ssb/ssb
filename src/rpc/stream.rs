@@ -21,7 +21,7 @@ pub enum ArgType {
     Object,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum BodyType {
     Binary,
     UTF8,
@@ -52,7 +52,7 @@ pub struct BodyRefWithOpts<'a, T: serde::Serialize, U: serde::Serialize> {
     pub args: (&'a T, &'a U),
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum RpcType {
     #[serde(rename = "async")]
     Async,
@@ -62,7 +62,7 @@ pub enum RpcType {
     Duplex,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Header {
     pub req_no: RequestNo,
     pub is_stream: bool,
