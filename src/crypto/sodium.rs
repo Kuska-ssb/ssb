@@ -19,19 +19,19 @@ pub trait ToSsbId {
     fn to_ssb_id(&self) -> String;
 }
 
-impl<'a> ToSsbId for ed25519::PublicKey {
+impl ToSsbId for ed25519::PublicKey {
     fn to_ssb_id(&self) -> String {
         format!("{}{}", base64::encode(self), CURVE_ED25519_SUFFIX)
     }
 }
 
-impl<'a> ToSsbId for ed25519::SecretKey {
+impl ToSsbId for ed25519::SecretKey {
     fn to_ssb_id(&self) -> String {
         format!("{}{}", base64::encode(self), CURVE_ED25519_SUFFIX)
     }
 }
 
-impl<'a> ToSsbId for sha256::Digest {
+impl ToSsbId for sha256::Digest {
     fn to_ssb_id(&self) -> String {
         format!("{}{}", base64::encode(self), SHA256_SUFFIX)
     }
