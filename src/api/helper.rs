@@ -328,9 +328,8 @@ impl<W: Write + Unpin> ApiCaller<W> {
             .send_request(
                 ApiMethod::InviteCreate.selector(),
                 RpcType::Async,
-                ArgType::Object,
+                ArgType::Array,
                 &args,
-                // specify None value for `opts`
                 &None::<()>,
             )
             .await?;
