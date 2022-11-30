@@ -1,0 +1,41 @@
+name: Check on every push
+
+on: [push, pull_request]
+
+jobs:
+  build_ubuntu:
+
+    runs-on: ubuntu-latest
+
+    env:
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          components: rustfmt, clippy
+
+      - name: Formatter
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all --all-features
+          
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all --verbose
+
+      # This is used to ensure that Cargo.lock is up to date
+      - name: Check for unstaged files
+        run: git diff --exit-code
