@@ -90,3 +90,23 @@ impl LanBroadcast {
         None
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_multiserver_net_address_parsing() -> Result<()> {
+        let ms_addr = "net:192.168.8.136:8008~shs:HEqy940T6uB+T+d9Jaa58aNfRzLx9eRWqkZljBmnkmk=";
+
+        let ip = "192.168.8.136".to_string();
+        let port = 8008;
+        let pk = "HEqy940T6uB+T+d9Jaa58aNfRzLx9eRWqkZljBmnkmk=".to_ed25519_pk_no_suffix()?;
+
+        let parse_output = LanBroadcast::parse(ms_addr);
+
+        assert_eq!(parse_output, Some((ip, port, pk)));
+
+        Ok(())
+    }
+}
