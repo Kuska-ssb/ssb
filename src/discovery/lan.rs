@@ -15,7 +15,7 @@ use crate::crypto::{ed25519, ToSodiumObject};
 use super::error::{Error, Result};
 
 pub static BROADCAST_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z=/]+)").unwrap()
+    Regex::new(r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z+=/]+)").unwrap()
 });
 
 pub struct LanBroadcast {
