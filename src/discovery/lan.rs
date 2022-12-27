@@ -68,14 +68,14 @@ impl LanBroadcast {
         }
     }
 
-    pub fn parse(msg: &str) -> Option<(String, u32, ed25519::PublicKey)> {
+    pub fn parse(msg: &str) -> Option<(String, u16, ed25519::PublicKey)> {
         let parse_shs = |addr: &str| -> Result<_> {
             let captures = BROADCAST_REGEX
                 .captures(addr)
                 .ok_or(Error::InvalidBroadcastMessage)?;
 
             let ip = captures[1].to_string();
-            let port = captures[2].parse::<u32>()?;
+            let port = captures[2].parse::<u16>()?;
             let server_pk = captures[3].to_ed25519_pk_no_suffix()?;
 
             Ok((ip, port, server_pk))
