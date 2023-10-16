@@ -1,4 +1,4 @@
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlobsGetIn {
     // key : ID of the blob. Required.
     pub key: String,
@@ -7,7 +7,7 @@ pub struct BlobsGetIn {
     // If the blob is not exactly this size then reject the request. Optional.
     pub size: Option<u64>,
 
-    // max 	Maximum size of the blob in bytes. If the blob is larger then reject
+    // max : Maximum size of the blob in bytes. If the blob is larger then reject
     // the request. Only makes sense to specify max if you don’t already know size. Optional.
     pub max: Option<u64>,
 }

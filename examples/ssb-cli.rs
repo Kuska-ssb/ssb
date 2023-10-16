@@ -116,7 +116,7 @@ where
                 RecvMsg::ErrorResponse(message) => {
                     return std::result::Result::Err(Box::new(AppError::new(message)));
                 }
-                RecvMsg::CancelStreamRespose() => break,
+                RecvMsg::CancelStreamResponse() => break,
                 _ => {}
             }
         }

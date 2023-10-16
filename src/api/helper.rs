@@ -18,6 +18,7 @@ pub enum ApiMethod {
     BlobsGet,
     CreateFeedStream,
     CreateHistoryStream,
+    EbtReplicate,
     FriendsBlocks,
     FriendsHops,
     FriendsIsFollowing,
@@ -44,6 +45,7 @@ impl ApiMethod {
             BlobsGet => &["blobs", "get"],
             CreateFeedStream => &["createFeedStream"],
             CreateHistoryStream => &["createHistoryStream"],
+            EbtReplicate => &["ebt", "replicate"],
             FriendsBlocks => &["friends", "blocks"],
             FriendsHops => &["friends", "hops"],
             FriendsIsBlocking => &["friends", "isBlocking"],
@@ -69,6 +71,7 @@ impl ApiMethod {
             ["blobs", "get"] => Some(BlobsGet),
             ["createFeedStream"] => Some(CreateFeedStream),
             ["createHistoryStream"] => Some(CreateHistoryStream),
+            ["ebt", "replicate"] => Some(EbtReplicate),
             ["friends", "blocks"] => Some(FriendsBlocks),
             ["friends", "hops"] => Some(FriendsHops),
             ["friends", "isBlocking"] => Some(FriendsIsBlocking),
@@ -196,6 +199,37 @@ impl<W: Write + Unpin> ApiCaller<W> {
             )
             .await?;
         Ok(req_no)
+    }
+
+    /// Send ["ebt", "replicate"] request.
+    pub async fn ebt_replicate_req_send(&mut self, args: &dto::EbtReplicate) -> Result<RequestNo> {
+        let req_no = self
+            .rpc
+            .send_request(
+                ApiMethod::EbtReplicate.selector(),
+                RpcType::Duplex,
+                ArgType::Array,
+                &args,
+                &None::<()>,
+            )
+            .await?;
+        Ok(req_no)
+    }
+
+    /// Send EBT vector clock (aka. notes) response.
+    pub async fn ebt_clock_res_send(&mut self, req_no: RequestNo, clock: &str) -> Result<()> {
+        self.rpc
+            .send_response(req_no, RpcType::Duplex, BodyType::JSON, clock.as_bytes())
+            .await?;
+        Ok(())
+    }
+
+    /// Send feed response as part of EBT.
+    pub async fn ebt_feed_res_send(&mut self, req_no: RequestNo, feed: &str) -> Result<()> {
+        self.rpc
+            .send_response(req_no, RpcType::Duplex, BodyType::JSON, feed.as_bytes())
+            .await?;
+        Ok(())
     }
 
     /// Send feed response.
