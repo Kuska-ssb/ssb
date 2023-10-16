@@ -155,7 +155,7 @@ pub enum RecvMsg {
     RpcResponse(BodyType, Vec<u8>),
     OtherRequest(BodyType, Vec<u8>),
     ErrorResponse(String),
-    CancelStreamRespose(),
+    CancelStreamResponse(),
 }
 
 impl<R: io::Read + Unpin> RpcReader<R> {
@@ -186,7 +186,7 @@ impl<R: io::Read + Unpin> RpcReader<R> {
             }
         } else if rpc_header.is_end_or_error {
             if rpc_header.is_stream {
-                Ok((-rpc_header.req_no, RecvMsg::CancelStreamRespose()))
+                Ok((-rpc_header.req_no, RecvMsg::CancelStreamResponse()))
             } else {
                 let err: ErrorMessage = serde_json::from_slice(&body_raw)?;
                 Ok((
