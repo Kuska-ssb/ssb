@@ -219,7 +219,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
     /// Send EBT vector clock (aka. notes) response.
     pub async fn ebt_clock_res_send(&mut self, req_no: RequestNo, clock: &str) -> Result<()> {
         self.rpc
-            .send_response(req_no, RpcType::Duplex, BodyType::JSON, clock.as_bytes())
+            .send_response(req_no, RpcType::Source, BodyType::JSON, clock.as_bytes())
             .await?;
         Ok(())
     }
@@ -227,7 +227,7 @@ impl<W: Write + Unpin> ApiCaller<W> {
     /// Send feed response as part of EBT.
     pub async fn ebt_feed_res_send(&mut self, req_no: RequestNo, feed: &str) -> Result<()> {
         self.rpc
-            .send_response(req_no, RpcType::Duplex, BodyType::JSON, feed.as_bytes())
+            .send_response(req_no, RpcType::Source, BodyType::JSON, feed.as_bytes())
             .await?;
         Ok(())
     }
