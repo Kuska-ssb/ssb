@@ -18,6 +18,7 @@ pub static BROADCAST_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"net:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):([0-9]+)~shs:([0-9a-zA-Z+=/]+)").unwrap()
 });
 
+#[derive(Debug)]
 pub struct LanBroadcast {
     destination: String,
     packets: Vec<(SocketAddr, SocketAddr, String)>,
