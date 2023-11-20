@@ -250,7 +250,7 @@ impl<W: io::Write + Unpin> RpcWriter<W> {
 
         let rpc_header = Header {
             req_no: self.req_no,
-            is_stream: rpc_type == RpcType::Source,
+            is_stream: rpc_type == RpcType::Source || rpc_type == RpcType::Duplex,
             is_end_or_error: false,
             body_type: BodyType::JSON,
             body_len: body_str.as_bytes().len() as u32,
